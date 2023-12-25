@@ -54,7 +54,7 @@
                   Width="120" HorizontalAlignment="Left"
                   ItemsSource="{Binding}" DisplayMemberPath="Display" SelectedValuePath="Value"/>
 
-            <styles:SHButtonPrimary Click="UpdateSerialPortList_click" HorizontalAlignment="Left" Grid.Row="1" Grid.Column="0" Width="180" >Update serial port list</styles:SHButtonPrimary>
+            <styles:SHButtonPrimary x:Name="btn_update" Click="UpdateSerialPortList_click" HorizontalAlignment="Left" Grid.Row="1" Grid.Column="0" Width="180" >Update serial port list</styles:SHButtonPrimary>
 
             <!-- serial connection -->
             <styles:SHButtonSecondary Click="ConnectToPedal_click" HorizontalAlignment="Left" Grid.Row="2" Grid.Column="0" Width="120" Margin="200,5,0,13" FontSize="10" Background="#FF08FF00" >Connect to Pedal</styles:SHButtonSecondary>
@@ -377,7 +377,7 @@ RenderTransformOrigin="0.508,0.525"
                         </TransformGroup>
                     </TextBlock.RenderTransform>
                 </TextBlock>
-                
+
                 <TextBlock x:Name="text_SABS" HorizontalAlignment="Left" 
                     VerticalAlignment="Top" 
                     Text="Simulated ABS" 
@@ -754,7 +754,7 @@ RenderTransformOrigin="0.508,0.525"
 
 
 
-                <Line
+                <Line x:Name="Line_H_pos"
                 X1="5" Y1="20"
                 X2="405" Y2="20"
                 Stroke="#7F87CEFA"
@@ -808,7 +808,7 @@ RenderTransformOrigin="0.508,0.525"
 
 
 
-                <Line
+                <Line x:Name="Line_V_force"
                     X1="20" Y1="0"
                     X2="20" Y2="160"
                     Stroke="#7E87CEFA"
@@ -821,6 +821,7 @@ RenderTransformOrigin="0.508,0.525"
             <CheckBox x:Name="Debug_check" HorizontalAlignment="Left" Grid.Row="9"
                 Width="236"
                 Height="34" VerticalAlignment="Top" Content="Debug Slider" Foreground="White" Margin="10,7,0,0" Checked="Debug_checkbox_Checked" Unchecked="Debug_checkbox_Unchecked" IsChecked="False" Grid.Column="1"/>
+            <CheckBox x:Name="checkbox_pedal_read" Content="Reading config from pedal when connected" HorizontalAlignment="Left" Margin="200,23,0,0" Grid.Row="3" VerticalAlignment="Top" Checked="CheckBox_Checked" IsChecked="False" FontSize="8"/>
 
 
 
