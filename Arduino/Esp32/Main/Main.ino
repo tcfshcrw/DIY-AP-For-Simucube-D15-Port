@@ -889,7 +889,7 @@ void serialCommunicationTask( void * pvParameters )
     }
 
     // transmit controller output
-    if(Using_analog_output_ =1)
+    if(Using_analog_output_ ==1)
     {
       if(semaphore_updateJoystick!=NULL)
       {
