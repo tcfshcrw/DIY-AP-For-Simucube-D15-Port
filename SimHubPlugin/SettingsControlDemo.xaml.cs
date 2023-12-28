@@ -51,7 +51,7 @@ namespace User.PluginSdkDemo
         public DAP_config_st[] dap_config_st = new DAP_config_st[3];
         private string stringValue;
 
-
+        
 
 
         
@@ -336,6 +336,7 @@ namespace User.PluginSdkDemo
                 DrawGridLines();
 
             }
+            
 
         }
 
@@ -526,9 +527,18 @@ namespace User.PluginSdkDemo
                 //ComboBox_JsonFileSelected.SelectedIndex = Plugin.Settings.selectedJsonIndexLast[indexOfSelectedPedal_u];
                 InitReadStructFromJson();
                 updateTheGuiFromConfig();
-
             }
 
+            if (plugin.Settings.reading_config == 1)
+            {
+                checkbox_pedal_read.IsChecked = true;
+            }
+            else
+            {
+                checkbox_pedal_read.IsChecked = false;
+            }
+            
+            
         }
 
 
@@ -2017,8 +2027,13 @@ namespace User.PluginSdkDemo
         }
         private void CheckBox_Checked(object sender, RoutedEventArgs e)
         {
-
+            Plugin.Settings.reading_config = 1;
         }
+        private void CheckBox_Unchecked(object sender, RoutedEventArgs e)
+        {
+            Plugin.Settings.reading_config = 0;
+        }
+
 
         /*
 private void GetRectanglePositions()

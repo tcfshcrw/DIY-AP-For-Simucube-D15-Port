@@ -234,7 +234,7 @@ namespace User.PluginSdkDemo
 			
 			bool sendAbsSignal_local_b = false;
             bool sendTcSignal_local_b = false;
-
+            
 
             // Send ABS signal when triggered by the game
             if (data.GameRunning)
@@ -361,6 +361,32 @@ namespace User.PluginSdkDemo
             
             // Save settings
             this.SaveCommonSettings("GeneralSettings", Settings);
+            // close all serial port interfaces
+            for (uint pedalIdx = 0; pedalIdx < 3; pedalIdx++)
+            {
+                if (_serialPort[pedalIdx].IsOpen)
+                {
+                    _serialPort[pedalIdx].Close();
+                }
+
+                _serialPort[pedalIdx].Handshake = Handshake.None;
+                _serialPort[pedalIdx].Parity = Parity.None;
+                //_serialPort[pedalIdx].StopBits = StopBits.None;
+
+
+                _serialPort[pedalIdx].ReadTimeout = 2000;
+                _serialPort[pedalIdx].WriteTimeout = 500;
+
+                try
+                {
+                    _serialPort[pedalIdx].PortName = Settings.selectedComPortNames[pedalIdx];
+                }
+                catch (Exception caughtEx)
+                {
+                }
+
+
+            }
         }
 
         /// <summary>
