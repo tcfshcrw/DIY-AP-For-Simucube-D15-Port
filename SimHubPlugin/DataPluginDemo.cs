@@ -400,7 +400,7 @@ namespace User.PluginSdkDemo
             return new SettingsControlDemo(this);
         }
 
-        static bool PortExists(string portName)
+        public bool PortExists(string portName)
         {
             string[] portNames = SerialPort.GetPortNames();
             return Array.Exists(portNames, name => name.Equals(portName, StringComparison.OrdinalIgnoreCase));

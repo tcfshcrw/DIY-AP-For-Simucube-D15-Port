@@ -42,7 +42,10 @@ namespace User.PluginSdkDemo
     {
 
 
+        // payload revisiom
         public uint pedalConfigPayload_version = 110;
+        public uint pedalConfigPayload_type = 100;
+        public uint pedalActionPayload_type = 110;
 
         public uint indexOfSelectedPedal_u = 1;
 
@@ -232,7 +235,7 @@ namespace User.PluginSdkDemo
 
             for (uint pedalIdx = 0; pedalIdx < 3; pedalIdx++)
             {
-                dap_config_st[pedalIdx].payloadHeader_.payloadType = 100;
+                dap_config_st[pedalIdx].payloadHeader_.payloadType = (byte)pedalConfigPayload_type;
                 dap_config_st[pedalIdx].payloadHeader_.version = (byte)pedalConfigPayload_version;
 
                 dap_config_st[pedalIdx].payloadPedalConfig_.pedalStartPosition = 35;
@@ -527,15 +530,32 @@ namespace User.PluginSdkDemo
                 //ComboBox_JsonFileSelected.SelectedIndex = Plugin.Settings.selectedJsonFileNames[indexOfSelectedPedal_u];
                 //ComboBox_JsonFileSelected.SelectedIndex = Plugin.Settings.selectedJsonIndexLast[indexOfSelectedPedal_u];
                 InitReadStructFromJson();
-                updateTheGuiFromConfig();
                 if (plugin.Settings.connect_status[pedalIndex] == 1)
                 {
-                    if(plugin.Settings.reading_config==1)
+                    if (plugin.Settings.reading_config == 1)
                     {
                         Reading_config_auto(pedalIndex);
                     }
+
+                }
+                /*
+                if (plugin.PortExists(plugin._serialPort[pedalIndex].PortName))
+                {
+                    if (plugin.Settings.connect_status[pedalIndex] == 1)
+                    {
+                        if (plugin.Settings.reading_config == 1)
+                        {
+                            Reading_config_auto(pedalIndex);
+                        }
+
+                    }
                     
                 }
+                else
+                {
+                    plugin.Settings.connect_status[pedalIndex] = 0;
+                }*/
+                updateTheGuiFromConfig();
             }
 
             if (plugin.Settings.reading_config == 1)
@@ -1165,6 +1185,7 @@ namespace User.PluginSdkDemo
                 // compute checksum
                 //getBytes(this.dap_config_st[indexOfSelectedPedal_u].payloadPedalConfig_)
                 this.dap_config_st[indexOfSelectedPedal_u].payloadHeader_.version = (byte)pedalConfigPayload_version;
+                this.dap_config_st[indexOfSelectedPedal_u].payloadHeader_.payloadType = (byte)pedalConfigPayload_type;
                 this.dap_config_st[indexOfSelectedPedal_u].payloadHeader_.storeToEeprom = 1;
                 DAP_config_st tmp = this.dap_config_st[indexOfSelectedPedal_u];
 
