@@ -334,6 +334,7 @@ namespace User.PluginSdkDemo
 
                 // Call this method to generate gridlines on the Canvas
                 DrawGridLines();
+                
 
             }
             
@@ -527,6 +528,14 @@ namespace User.PluginSdkDemo
                 //ComboBox_JsonFileSelected.SelectedIndex = Plugin.Settings.selectedJsonIndexLast[indexOfSelectedPedal_u];
                 InitReadStructFromJson();
                 updateTheGuiFromConfig();
+                if (plugin.Settings.connect_status[pedalIndex] == 1)
+                {
+                    if(plugin.Settings.reading_config==1)
+                    {
+                        Reading_config_auto(pedalIndex);
+                    }
+                    
+                }
             }
 
             if (plugin.Settings.reading_config == 1)
@@ -537,8 +546,10 @@ namespace User.PluginSdkDemo
             {
                 checkbox_pedal_read.IsChecked = false;
             }
-            
-            
+            indexOfSelectedPedal_u = plugin.Settings.table_selected;
+            MyTab.SelectedIndex = (int)indexOfSelectedPedal_u;
+
+
         }
 
 
@@ -651,14 +662,14 @@ namespace User.PluginSdkDemo
             double abs_max = 255;
             dx = canvas_horz_ABS.Width / abs_max;
             Canvas.SetLeft(rect_ABS, dx * dap_config_st[indexOfSelectedPedal_u].payloadPedalConfig_.absAmplitude);
-            text_ABS.Text = "ABS/TC Amplitude: " + dap_config_st[indexOfSelectedPedal_u].payloadPedalConfig_.absAmplitude;
+            text_ABS.Text = "ABS/TC Amp.: " + (float)dap_config_st[indexOfSelectedPedal_u].payloadPedalConfig_.absAmplitude/20+"Kg";
             Canvas.SetLeft(text_ABS, Canvas.GetLeft(rect_ABS) + rect_ABS.Width / 2);
             Canvas.SetTop(text_ABS, canvas_horz_ABS.Height - 10);
             //ABS freq slider
             double abs_freq_max = 30;
             dx = canvas_horz_ABS_freq.Width / abs_freq_max;
             Canvas.SetLeft(rect_ABS_freq, dx * dap_config_st[indexOfSelectedPedal_u].payloadPedalConfig_.absFrequency);
-            text_ABS_freq.Text = "ABS/TC Frequency: " + dap_config_st[indexOfSelectedPedal_u].payloadPedalConfig_.absFrequency+"Hz";
+            text_ABS_freq.Text = "ABS/TC Freq.: " + dap_config_st[indexOfSelectedPedal_u].payloadPedalConfig_.absFrequency+"Hz";
             Canvas.SetLeft(text_ABS_freq, Canvas.GetLeft(rect_ABS_freq) + rect_ABS_freq.Width / 2);
             Canvas.SetTop(text_ABS_freq, canvas_horz_ABS_freq.Height - 10);
             //max game output slider
@@ -824,7 +835,7 @@ namespace User.PluginSdkDemo
         private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             indexOfSelectedPedal_u = (uint)MyTab.SelectedIndex;
-
+            Plugin.Settings.table_selected = (uint)MyTab.SelectedIndex;
             // update the sliders & serial port selection accordingly
             updateTheGuiFromConfig();
         }
@@ -1213,7 +1224,107 @@ namespace User.PluginSdkDemo
         }
 
 
+        unsafe public void Reading_config_auto(uint i)
+        {
+            if (Plugin._serialPort[i].IsOpen)
+            {
 
+
+                // compute checksum
+                DAP_action_st tmp;
+                tmp.payloadPedalAction_.returnPedalConfig_u8 = 1;
+
+
+                DAP_action_st* v = &tmp;
+                byte* p = (byte*)v;
+                tmp.payloadFooter_.checkSum = Plugin.checksumCalc(p, sizeof(payloadHeader) + sizeof(payloadPedalAction));
+
+
+                int length = sizeof(DAP_action_st);
+                byte[] newBuffer = new byte[length];
+                newBuffer = Plugin.getBytes_Action(tmp);
+
+
+                // clear inbuffer 
+                Plugin._serialPort[i].DiscardInBuffer();
+
+                // send query command
+                Plugin._serialPort[i].Write(newBuffer, 0, newBuffer.Length);
+
+
+                // wait for response
+                System.Threading.Thread.Sleep(100);
+
+                TextBox_debugOutput.Text = "Reading pedal config: ";
+
+                try
+                {
+
+                    length = sizeof(DAP_config_st);
+                    byte[] newBuffer_config = new byte[length];
+
+                    int receivedLength = Plugin._serialPort[i].BytesToRead;
+
+                    if (receivedLength == length)
+                    {
+                        Plugin._serialPort[i].Read(newBuffer_config, 0, length);
+
+
+                        DAP_config_st pedalConfig_read_st = getConfigFromBytes(newBuffer_config);
+
+                        // check CRC
+                        DAP_config_st* v_config = &pedalConfig_read_st;
+                        byte* p_config = (byte*)v_config;
+
+
+                        if (Plugin.checksumCalc(p_config, sizeof(payloadHeader) + sizeof(payloadPedalConfig)) == pedalConfig_read_st.payloadFooter_.checkSum)
+                        {
+                            this.dap_config_st[indexOfSelectedPedal_u] = pedalConfig_read_st;
+                            updateTheGuiFromConfig();
+                            TextBox_debugOutput.Text += "Read config from pedal successful!";
+                        }
+                        else
+                        {
+                            TextBox_debugOutput.Text += "CRC mismatch!";
+
+                        }
+                    }
+                    else
+                    {
+                        TextBox_debugOutput.Text += "Data size mismatch!\n";
+                        TextBox_debugOutput.Text += "Expected size: " + length + "\n";
+                        TextBox_debugOutput.Text += "Received size: " + receivedLength;
+
+                        DateTime startTime = DateTime.Now;
+                        //TimeSpan diffTime = DateTime.Now - startTime;
+                        //int millisceonds = (int)diffTime.TotalSeconds;
+
+
+                        while ((Plugin._serialPort[indexOfSelectedPedal_u].BytesToRead > 0) && (DateTime.Now - startTime).Seconds < 2)
+                        {
+                            string message = Plugin._serialPort[indexOfSelectedPedal_u].ReadLine();
+                            TextBox_debugOutput.Text += message;
+
+                        }
+
+                    }
+
+
+
+
+                }
+                catch (Exception ex)
+                {
+                    TextBox_debugOutput.Text = ex.Message;
+                    ConnectToPedal.IsChecked = false;
+                }
+
+                //catch (TimeoutException) { }
+
+
+
+            }
+        }
 
         /********************************************************************************************************************/
         /*							Read config from pedal																	*/
@@ -1349,6 +1460,7 @@ namespace User.PluginSdkDemo
                             }
                         }
                         catch (TimeoutException) { }
+                        Plugin.Settings.connect_status[indexOfSelectedPedal_u] = 1;
 
                     }
                     catch (Exception ex)
@@ -1596,6 +1708,7 @@ namespace User.PluginSdkDemo
                 Plugin._serialPort[indexOfSelectedPedal_u].Close();
                 ConnectToPedal.IsChecked = false;
                 TextBox_debugOutput.Text = "Serialport close";
+                Plugin.Settings.connect_status[indexOfSelectedPedal_u] = 0;
             }           
             else
             {
@@ -1884,7 +1997,7 @@ namespace User.PluginSdkDemo
                     double actual_x = x / dx;
                     dap_config_st[indexOfSelectedPedal_u].payloadPedalConfig_.absAmplitude = Convert.ToByte(actual_x);
 
-                    text_ABS.Text = "ABS/TC Amplitude:  " + dap_config_st[indexOfSelectedPedal_u].payloadPedalConfig_.absAmplitude;
+                    text_ABS.Text = "ABS/TC Amp.:  " + (float)dap_config_st[indexOfSelectedPedal_u].payloadPedalConfig_.absAmplitude/20+"Kg";
                     Canvas.SetLeft(text_ABS, x + rect_ABS.Width / 2);
                     Canvas.SetLeft(rectangle, x);
                 }
@@ -1902,7 +2015,7 @@ namespace User.PluginSdkDemo
                     double actual_x = x / dx;
                     dap_config_st[indexOfSelectedPedal_u].payloadPedalConfig_.absFrequency = Convert.ToByte(actual_x);
 
-                    text_ABS_freq.Text = "ABS/TC Frequency:  " + dap_config_st[indexOfSelectedPedal_u].payloadPedalConfig_.absFrequency+"Hz";
+                    text_ABS_freq.Text = "ABS/TC Freq.:  " + dap_config_st[indexOfSelectedPedal_u].payloadPedalConfig_.absFrequency+"Hz";
                     Canvas.SetLeft(text_ABS_freq, x + rect_ABS_freq.Width / 2);
                     Canvas.SetLeft(rectangle, x);
                 }

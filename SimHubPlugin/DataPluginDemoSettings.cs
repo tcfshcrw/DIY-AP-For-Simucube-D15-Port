@@ -13,7 +13,8 @@
 
         public string[] selectedJsonFileNames = { "1", "2", "3" };
         public int reading_config = 0;
-        //public int[] connect_status = new int[3] { 0, 0, 0};
+        public int[] connect_status = new int[3] { 0, 0, 0};
+        public uint table_selected = 0;
 
         public int[] selectedComPortNamesInt = new int[3] { -1, -1, -1 };
     }

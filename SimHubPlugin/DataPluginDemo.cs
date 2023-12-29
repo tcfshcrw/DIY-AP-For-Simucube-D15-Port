@@ -368,7 +368,7 @@ namespace User.PluginSdkDemo
                 {
                     _serialPort[pedalIdx].Close();
                 }
-
+                /*
                 _serialPort[pedalIdx].Handshake = Handshake.None;
                 _serialPort[pedalIdx].Parity = Parity.None;
                 //_serialPort[pedalIdx].StopBits = StopBits.None;
@@ -384,6 +384,7 @@ namespace User.PluginSdkDemo
                 catch (Exception caughtEx)
                 {
                 }
+                */
 
 
             }
@@ -398,6 +399,13 @@ namespace User.PluginSdkDemo
         {
             return new SettingsControlDemo(this);
         }
+
+        static bool PortExists(string portName)
+        {
+            string[] portNames = SerialPort.GetPortNames();
+            return Array.Exists(portNames, name => name.Equals(portName, StringComparison.OrdinalIgnoreCase));
+        }
+
 
         /// <summary>
         /// Called once after plugins startup
@@ -465,9 +473,57 @@ namespace User.PluginSdkDemo
                 catch (Exception caughtEx)
                 {
                 }
+                //try connect back to com port
+                if (Settings.connect_status[pedalIdx] == 1)
+                {
+                    _serialPort[pedalIdx].PortName = Settings.selectedComPortNames[pedalIdx];
+                    //SerialPort.GetPortNames
+                    if (PortExists(_serialPort[pedalIdx].PortName))
+                    {
+                        if (_serialPort[pedalIdx].IsOpen == false)
+                        {
+                            try
+                            {
+                                _serialPort[pedalIdx].Open();
 
+                                //TextBox_debugOutput.Text = "Serialport open";
+                                //ConnectToPedal.IsChecked = true;
+
+                                try
+                                {
+                                    while (_serialPort[pedalIdx].BytesToRead > 0)
+                                    {
+                                        string message = _serialPort[pedalIdx].ReadLine();
+                                    }
+                                }
+                                catch (TimeoutException) { }
+
+                            }
+                            catch (Exception ex)
+                            {
+                                //TextBox_debugOutput.Text = ex.Message;
+                                //ConnectToPedal.IsChecked = false;
+                            }
+
+                        }
+                        else
+                        {
+                            _serialPort[pedalIdx].Close();
+                            //ConnectToPedal.IsChecked = false;
+                            //TextBox_debugOutput.Text = "Serialport already open, close it";
+                        }
+                    }
+                }
+                else
+                {
+                    Settings.connect_status[pedalIdx] = 0;
+                }
 
             }
+
+
+
+
 
             //// check if Json config files are present, otherwise create new ones
             //for (uint jsonIndex = 0; jsonIndex < ComboBox_JsonFileSelected.Items.Count; jsonIndex++)
