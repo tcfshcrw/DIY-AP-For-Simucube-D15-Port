@@ -15,7 +15,16 @@ using System.Windows.Media;
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
 [Serializable]
 
+static class Constants
+{
+    // payload revisiom
+    public const uint pedalConfigPayload_version = 110;
 
+
+    // pyload types
+    public const uint pedalConfigPayload_type = 100;
+    public const uint pedalActionPayload_type = 110;
+}
 
 
 
@@ -151,7 +160,12 @@ namespace User.PluginSdkDemo
         // ABS trigger timer
         DateTime absTrigger_currentTime = DateTime.Now;
         DateTime absTrigger_lastTime = DateTime.Now;
+        //// payload revisiom
+        //public uint pedalConfigPayload_version = 110;
 
+        //// pyload types
+        //public uint pedalConfigPayload_type = 100;
+        //public uint pedalActionPayload_type = 110;
 
 
 
@@ -287,6 +301,9 @@ namespace User.PluginSdkDemo
 
                     // compute checksum
                     DAP_action_st tmp;
+
+                    tmp.payloadHeader_.version = (byte)Constants.pedalConfigPayload_version;
+                    tmp.payloadHeader_.payloadType = (byte)Constants.pedalActionPayload_type;
                     tmp.payloadPedalAction_.triggerAbs_u8 = 1;
 
 
@@ -316,6 +333,9 @@ namespace User.PluginSdkDemo
                 {
                     // compute checksum
                     DAP_action_st tmp;
+
+                    tmp.payloadHeader_.version = (byte)Constants.pedalConfigPayload_version;
+                    tmp.payloadHeader_.payloadType = (byte)Constants.pedalActionPayload_type;
                     tmp.payloadPedalAction_.triggerAbs_u8 = 1;
 
 
@@ -555,8 +575,8 @@ namespace User.PluginSdkDemo
 
 
 
-            dap_config_initial_st.payloadHeader_.payloadType = 100;
-            dap_config_initial_st.payloadHeader_.version = 110;
+            dap_config_initial_st.payloadHeader_.payloadType = (byte)Constants.pedalConfigPayload_type;
+            dap_config_initial_st.payloadHeader_.version = (byte)Constants.pedalConfigPayload_version;
             dap_config_initial_st.payloadHeader_.storeToEeprom = 0;
             dap_config_initial_st.payloadPedalConfig_.pedalStartPosition = 35;
             dap_config_initial_st.payloadPedalConfig_.pedalEndPosition = 80;
