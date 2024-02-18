@@ -1,11 +1,7 @@
 var searchData=
 [
-  ['len_0',['len',['../classisv57communication.html#ad34c17565b18c28c9c07b0794040abdf',1,'isv57communication']]],
-  ['lengthpedal_5fac_1',['lengthPedal_AC',['../structpayloadPedalConfig.html#a038f8d60409a47b910a539eb0ac54140',1,'payloadPedalConfig']]],
-  ['lengthpedal_5fcb_2',['lengthPedal_CB',['../structpayloadPedalConfig.html#aedfa8ce57114bf653423edf0ec411b5b',1,'payloadPedalConfig']]],
-  ['lenrx_3',['lenRx',['../classModbus.html#ac2086593416ac4a890e10c3ec03dfa65',1,'Modbus']]],
-  ['limit_5ftrigger_5fvalue_4',['LIMIT_TRIGGER_VALUE',['../Dev_2StepperWithLimits_8cpp.html#a8f1a62cc3e8994f85b2e62734e87f24f',1,'LIMIT_TRIGGER_VALUE():&#160;StepperWithLimits.cpp'],['../Main_2StepperWithLimits_8cpp.html#a8f1a62cc3e8994f85b2e62734e87f24f',1,'LIMIT_TRIGGER_VALUE():&#160;StepperWithLimits.cpp']]],
-  ['loadcell_5frating_5',['loadcell_rating',['../structpayloadPedalConfig.html#ac397931ea49030321393fa85c779a9ec',1,'payloadPedalConfig']]],
-  ['loadcell_5fvariance_5fmin_6',['LOADCELL_VARIANCE_MIN',['../LoadCell_8cpp.html#acbb4f95db109149d08210b082b7aeb5b',1,'LoadCell.cpp']]],
-  ['log_7',['log',['../classModbus.html#a06407fb75e61d2f36537970b3bf19b98',1,'Modbus']]]
+  ['joystick_5fmax_5fvalue_0',['JOYSTICK_MAX_VALUE',['../Controller_8cpp.html#a6932f6513cabf3082fc4fb11537a4293',1,'Controller.cpp']]],
+  ['joystick_5fmin_5fvalue_1',['JOYSTICK_MIN_VALUE',['../Controller_8cpp.html#ac1e9ca710d3cf526d3500bd08edd4b36',1,'Controller.cpp']]],
+  ['joystick_5frange_2',['JOYSTICK_RANGE',['../Controller_8cpp.html#a7a50456faa7346a8466099e7c9003cc1',1,'Controller.cpp']]],
+  ['joystickoutput_5fu16_3',['joystickOutput_u16',['../structpayloadPedalState__Basic.html#aa5e0dd882e9ecd78f46ab408b3558f18',1,'payloadPedalState_Basic']]]
 ];
