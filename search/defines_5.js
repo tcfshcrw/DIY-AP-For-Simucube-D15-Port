@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['loadcell_5fexcitation_5fv_0',['LOADCELL_EXCITATION_V',['../Main_8h.html#a427b269acba12e18c696d5be8cb59e91',1,'Main.h']]],
-  ['loadcell_5fsensitivity_5fmv_5fv_1',['LOADCELL_SENSITIVITY_MV_V',['../Main_8h.html#af46044ba4504bc725cd220af5edeef5a',1,'Main.h']]],
-  ['loadcell_5fweight_5frating_5fkg_2',['LOADCELL_WEIGHT_RATING_KG',['../Main_8h.html#ab869e8b74a0701afafb8d56087a5604b',1,'Main.h']]]
+  ['input_5fregister_0',['Input_Register',['../Esp32_2Main_2Modbus_8h.html#ae4242b7cf8b6c1da8ce8f8f560112384',1,'Input_Register():&#160;Modbus.h'],['../ModbusTest_2Modbus_2src_2Modbus_8h.html#ae4242b7cf8b6c1da8ce8f8f560112384',1,'Input_Register():&#160;Modbus.h']]],
+  ['isv57_5frxpin_1',['ISV57_RXPIN',['../Main_8h.html#a962c519682177cf611484db2d1c8116b',1,'Main.h']]],
+  ['isv57_5ftxpin_2',['ISV57_TXPIN',['../Main_8h.html#afe7a1194ca3ce62a3b9cc53375c5f457',1,'Main.h']]]
 ];
