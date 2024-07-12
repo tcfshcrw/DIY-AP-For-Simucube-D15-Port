@@ -27,14 +27,14 @@ jobs:
       - name: Download math result for build_simhub_plugin
         uses: actions/download-artifact@v2
         with:
-          name: simhub_plugin.zip
+          name: simhub_plugin
           
           
           
       - name: Download math result for build_firmware
         uses: actions/download-artifact@v2
         with:
-          name: firmware_esp32.zip
+          name: firmware_esp32
           
       - name: Print the final result
         shell: bash
