@@ -1,4 +1,4 @@
-name: build_release
+name: build_release_deploy
 
 
 # Only trigger, when the build workflow succeeded, see https://stackoverflow.com/questions/62750603/github-actions-trigger-another-action-after-one-action-is-completed
