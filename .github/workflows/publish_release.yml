@@ -22,10 +22,17 @@ jobs:
     name: deploy
     runs-on: ubuntu-latest
     steps:
-      - name: Download math result for job 2
-        uses: actions/download-artifact@v2
+      - name: Download math result for build_simhub_plugin
+        uses: actions/download-artifact@v4
         with:
-          name: ["simhub_plugin","firmware_esp32"]
+          name: simhub_plugin.zip
+          
+          
+      - name: Download math result for build_firmware
+        uses: actions/download-artifact@v4
+        with:
+          name: firmware_esp32.zip
+          
       - name: Print the final result
         shell: bash
         run: |
