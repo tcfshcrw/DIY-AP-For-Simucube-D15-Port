@@ -79,7 +79,7 @@ jobs:
 
     # Publish as build artifact
     - name: Attach artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: simhub_plugin
         path: | 
