@@ -197,14 +197,20 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: simhub_plugin
-          
-          
-          
+
       - name: Download math result for build_firmware
         uses: actions/download-artifact@v4
         with:
           name: firmware_esp32
-          
+      - name: depoly_release
+        uses: ncipollo/release-action@v1
+        with:
+              artifacts: "SimHub_plugin.zip,esp32.zip,esp32s3.zip,esp32_speedcrafter.zip"
+              prerelease: ${{ github.event.inputs.is-pre-release }}
+              replacesArtifacts: true
+              allowUpdates: true
+              name: ${{ github.run_number }}
+              tag: ${{ github.run_number }}
       - name: Print the final result
         shell: bash
         run: |
