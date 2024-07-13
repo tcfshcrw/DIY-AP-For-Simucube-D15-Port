@@ -193,6 +193,16 @@ jobs:
     name: deploy
     runs-on: ubuntu-latest
     steps:
+      # create a release
+      # see https://www.youtube.com/watch?v=_ueJ3LrRqPU
+      - name: Create Release
+        id: create-new-release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.run_number }}
+          release_name: Release ${{ github.run_number }}
       - name: Download math result for build_simhub_plugin
         uses: actions/download-artifact@v4
         with:
