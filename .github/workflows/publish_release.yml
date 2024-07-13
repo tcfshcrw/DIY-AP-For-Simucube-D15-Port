@@ -112,6 +112,7 @@ jobs:
 #       Build SimHub plugin
 ########################################################################
   buildSimhubPlugin:
+    needs: buildFirmware
     runs-on: windows-2019
 
     steps:
@@ -188,6 +189,7 @@ jobs:
           ./SimHubPlugin/bin/SimHub_plugin.zip
 
   deploy:
+    needs: buildSimhubPlugin
     name: deploy
     runs-on: ubuntu-latest
     steps:
