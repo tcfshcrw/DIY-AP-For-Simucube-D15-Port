@@ -1,31 +1,278 @@
-name: build_release
+# This is the name of the workflow, visible on GitHub UI.
+name: PreRelease_Build
 
-
-# Only trigger, when the build workflow succeeded, see https://stackoverflow.com/questions/62750603/github-actions-trigger-another-action-after-one-action-is-completed
+# Controls when the action will run. 
 on:
-  workflow_run:
-    workflows: 
-      - build_firmware
-      - build_simhub_plugin
-    types:
-      - completed
-      
-#on: [push]     
-      
+  # Triggers the workflow on push or pull request events but only for the main branch
+  push:
+    branches: [ main ]
+  #pull_request:
+  #  branches: [ main ]
+
 # This is the list of jobs that will be run concurrently.
 # Since we use a build matrix, the actual number of jobs
 # started depends on how many configurations the matrix
 # will produce.
-
-# https://docs.github.com/de/actions/using-workflows/storing-workflow-data-as-artifacts
-
 jobs:
-  generateRelase:
-    runs-on: ubuntu-latest
+
+  
+  BuildFirmware:
+    #runs-on: ubuntu-latest
+    runs-on: windows-latest
+
     steps:
-      - name: Download math result for job 2
-        uses: actions/download-artifact@v4
-      - name: Print the final result
-        shell: bash
-        run: |
-          echo The result is good
+    
+    # Prepare environment
+      - uses: actions/checkout@main
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.platformio/.cache
+          key: ${{ runner.os }}-pio
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install PlatformIO Core
+        run: pip install --upgrade platformio
+
+
+
+
+
+    # Build ESP code
+      - name: Build PlatformIO Project ESP32
+        working-directory: ./ESP32
+        run: | 
+          pio system info
+          pio run --environment esp32 
+          pio run --environment esp32s3usbotg
+          pio run --environment esp32-speedcrafter
+             
+        
+        
+        
+        
+        
+        
+        
+    # copy files to dir
+      - name: Copy files to packing dir
+        run: | 
+          copy ${{ github.workspace }}/ESP32/.pio/build/esp32/firmware.bin  ${{ github.workspace }}/Helper/bins/esp32
+          copy ${{ github.workspace }}/ESP32/.pio/build/esp32/bootloader.bin  ${{ github.workspace }}/Helper/bins/esp32
+          copy ${{ github.workspace }}/ESP32/.pio/build/esp32/partitions.bin  ${{ github.workspace }}/Helper/bins/esp32
+          copy ${{ github.workspace }}/ESP32/.pio/build/esp32s3usbotg/firmware.bin  ${{ github.workspace }}/Helper/bins/esp32s3
+          copy ${{ github.workspace }}/ESP32/.pio/build/esp32s3usbotg/bootloader.bin  ${{ github.workspace }}/Helper/bins/esp32s3
+          copy ${{ github.workspace }}/ESP32/.pio/build/esp32s3usbotg/partitions.bin  ${{ github.workspace }}/Helper/bins/esp32s3
+          copy ${{ github.workspace }}/ESP32/.pio/build/esp32-speedcrafter/firmware.bin  ${{ github.workspace }}/Helper/bins/esp32_speedcrafter_PCB_V1p4
+          copy ${{ github.workspace }}/ESP32/.pio/build/esp32-speedcrafter/bootloader.bin  ${{ github.workspace }}/Helper/bins/esp32_speedcrafter_PCB_V1p4
+          copy ${{ github.workspace }}/ESP32/.pio/build/esp32-speedcrafter/partitions.bin  ${{ github.workspace }}/Helper/bins/esp32_speedcrafter_PCB_V1p4
+    
+    
+    
+    
+    
+    
+    
+    # copy files to dir
+      - name: List files in dir
+        run: | 
+          dir ${{ github.workspace }}/Helper/bins/esp32
+    
+    
+    
+    
+    
+
+    # zip plugin binaries
+      - name: ZIP files
+        run: | 
+          7z a ${{ github.workspace }}/Helper/zip/esp32.zip ${{ github.workspace }}/Helper/bins/esp32/
+          7z a ${{ github.workspace }}/Helper/zip/esp32s3.zip ${{ github.workspace }}/Helper/bins/esp32s3/
+          7z a ${{ github.workspace }}/Helper/zip/esp32_speedcrafter.zip ${{ github.workspace }}/Helper/bins/esp32_speedcrafter_PCB_V1p4/
+    #      7z a ./Helper/zip/esp32.zip @./Helper/zip/filelist_esp32.txt
+    #      7z a ./Helper/zip/esp32s3.zip @Helper/zip/filelist_esp32s3.txt
+    #      7z a./Helper/zip/esp32_speedcrafter.zip @Helper/zip/filelist_esp32_speedcrafter.txt
+    # Publish as build artifact
+      - name: Attach artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: firmware_esp32
+          path: | 
+            ./Helper/zip/esp32.zip
+            ./Helper/zip/esp32s3.zip
+            ./Helper/zip/esp32_speedcrafter.zip
+      # create a release
+      # see https://www.youtube.com/watch?v=_ueJ3LrRqPU
+      - name: Create PreRelease
+        id: create-new-PreRelease
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.run_number }}
+          release_name: develop_package ${{ github.run_number }}
+          prerelease: true
+
+      # upload release asset
+      # Arduino binaries
+      - name: Upload ESP release assets
+        id: upload-release-asset 
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create-new-release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+          asset_path: ./Helper/zip/esp32.zip
+          asset_name: esp32_0.zip
+          asset_content_type: application/zip
+          
+      - name: Upload ESP32S3 release assets 
+        id: upload-release-asset-ESP32S3
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create-new-release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
+          asset_path: ./Helper/zip/esp32s3.zip
+          asset_name: esp32s3.zip
+          asset_content_type: application/zip
+          
+      - name: Upload ESP release assets speedcrafter PCB V1p4
+        id: upload-release-asset-speedcrafter-pcb-v1p4
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create-new-release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
+          asset_path: ./Helper/zip/esp32_speedcrafter.zip
+          asset_name: esp32_speedcrafter.zip
+          asset_content_type: application/zip
+
+          
+      
+########################################################################
+#       Build SimHub plugin
+########################################################################
+  buildSimhubPlugin:
+    runs-on: windows-2019
+    needs: BuildFirmware
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v1
+
+    - name: Setup NuGet
+      uses: NuGet/setup-nuget@v1.0.5
+      
+    - name: Setup MS Build Systems
+      uses: microsoft/setup-msbuild@v1.1
+
+    - uses: actions/cache@v3
+      name: Restore Caches
+      id: cache
+      with:
+        path: |
+          innounp050.rar
+          SimHub.8.01.2.zip
+        key: SimHub.8.01.2
+
+    - name: Download Requirements # Used to download the SimHub DLLs - only if not in cache.
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: | 
+        aria2c -j1 -o innounp050.rar "https://sourceforge.net/projects/innounp/files/innounp/innounp%200.50/innounp050.rar/download"
+        aria2c -j1 -o SimHub.8.01.2.zip "https://github.com/SHWotever/SimHub/releases/download/9.1.22/SimHub.9.01.22.zip"
+    
+    - name: Extract Requirements # Used to extract the SimHub DLLs
+      run: | 
+        7z x innounp050.rar
+        7z x SimHub.8.01.2.zip
+        dir
+        mkdir "C:\Program Files (x86)\SimHub\"
+        ${{ github.workspace }}\innounp.exe -v -x -b -e -d"C:\Program Files (x86)\SimHub\" SimHubSetup_9.1.22.exe
+    - name: List files in dir
+      run: |
+        ls "C:\Program Files (x86)\SimHub\"
+        
+    #- name: List files in dir 2
+    #  run: |
+    #    ls ${{ github.workspace }}
+    - name: Edit version
+      run: sed -i "s/\(AssemblyVersion(""\([0-9]\+\.\)\{3\}\)\([0-9]\+\)/\1${{github.run_number}}/" "SimHubPlugin/Properties/AssemblyInfo.cs"
+      
+    - name: Restore Packages
+      run: nuget restore "SimHubPlugin/User.PluginSdkDemo.sln"
+
+    - name: Build solution
+      run: msbuild "SimHubPlugin/User.PluginSdkDemo.sln" -t:rebuild -property:Configuration=Release
+
+    
+
+
+    # zip plugin binaries
+    - name: ZIP files
+      run: | 
+        7z a ./SimHubPlugin/bin/SimHub_plugin.zip ./SimHubPlugin/bin/*
+
+
+    #- name: List files in dir 3
+    #  run: |
+    #    ls ${{ github.workspace }}/SimHubPlugin
+    #- name: List files in dir 4
+    #  run: |
+    #    ls ${{ github.workspace }}/SimHubPlugin/bin
+        
+    # create a release
+    # see https://www.youtube.com/watch?v=_ueJ3LrRqPU
+    #- name: Create Release
+    #  id: create-new-release
+    #  uses: actions/create-release@v1
+    #  env:
+    #    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    #  with:
+    #    tag_name: ${{ github.run_number }}
+    #    release_name: Release ${{ github.run_number }}
+
+        
+    # # SimHub plugin binaries
+    #- name: Upload SimHub release assets
+    #  id: upload-release-asset-plugin 
+    #  uses: actions/upload-release-asset@v1
+    #  env:
+    #    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    #  with:
+    #    upload_url: ${{ steps.create-new-release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+    #    asset_path: ./SimHubPlugin/bin/SimHub_plugin.zip
+    #    asset_name: SimHub_plugin.zip
+    #    asset_content_type: application/zip 
+
+
+
+    # zip plugin binaries
+    #- uses: montudor/action-zip@v1
+    #  with:
+    #    args: zip -qq -r ./SimHubPlugin/bin/SimHub_plugin.zip ./SimHubPlugin/bin/
+
+
+    - name: Upload Artifact
+      uses: ncipollo/release-action@v1
+      with:
+        artifacts: '${{ github.workspace }}\SimHubPlugin\bin\DiyActivePedal.dll'
+        prerelease: ${{ github.event.inputs.is-pre-release }}
+        replacesArtifacts: true
+        allowUpdates: true
+        name: ${{ github.run_number }}
+        tag: ${{ github.run_number }}
+
+    # SimHub plugin binaries
+    #- name: Upload SimHub release assets
+    #  id: upload-release-asset-plugin 
+    #  uses: actions/upload-release-asset@v1
+    #  env:
+    #    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    #  with:
+    #    upload_url: ${{ steps.create-new-release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+    #    asset_path: ./SimHubPlugin/bin/SimHub_plugin.zip
+    #    asset_name: SimHub_plugin.zip
+    #    asset_content_type: application/zip
