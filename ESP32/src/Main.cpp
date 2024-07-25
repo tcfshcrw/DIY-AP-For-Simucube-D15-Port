@@ -55,7 +55,7 @@ void pedalUpdateTask( void * pvParameters );
 void serialCommunicationTask( void * pvParameters );
 void servoCommunicationTask( void * pvParameters );
 void OTATask( void * pvParameters );
-
+void I2C_SyncTask( void * pvParameters );
 // https://www.tutorialspoint.com/cyclic-redundancy-check-crc-in-arduino
 uint16_t checksumCalculator(uint8_t * data, uint16_t length)
 {
@@ -246,7 +246,7 @@ TaskHandle_t Task4;
 #ifdef Using_I2C_Sync
   
   #include "I2CSync.h"
-
+  TaskHandle_t Task5;
 #endif
 
 
@@ -598,20 +598,12 @@ void setup()
   #ifdef Using_I2C_Sync
       if(dap_config_st.payLoadPedalConfig_.pedal_type==1)
       {
-        I2C_sync.begin(I2C_SDA,I2C_SCL,I2C_rate);
-        delay(3000);
-        Serial.println("Sync as Master");
+        I2C_initialize();
 
       }
       if(dap_config_st.payLoadPedalConfig_.pedal_type==2)
       {
-        I2C_sync.onReceive(SynconReceive);
-        I2C_sync.onRequest(SynconRequest);
-        I2C_sync.begin((uint8_t)I2C_slave_address,I2C_SDA,I2C_SCL,I2C_rate);
-        //I2C_sync.begin(I2C_SDA,I2C_SCL,(uint8_t)I2C_slave_address);
-        Serial.println("Sync as Slave");
-        
-
+        I2C_initialize_slave();        
       }
       if(dap_config_st.payLoadPedalConfig_.pedal_type==0)
       {
@@ -621,6 +613,18 @@ void setup()
       {
           Serial.println("Please send a config in and try again");
       }
+              // make the update as task
+        xTaskCreatePinnedToCore(
+                      I2C_SyncTask,   
+                      "I2C_update_Task", 
+                      10000,  
+                      //STACK_SIZE_FOR_TASK_2,    
+                      NULL,      
+                      1,         
+                      &Task5,    
+                      1);     
+        delay(500);
+
   #endif
 
   Serial.println("Setup end");
@@ -974,62 +978,10 @@ void pedalUpdateTask( void * pvParameters )
     // use interpolation to determine local linearized spring stiffness
     double stepperPosFraction = stepper->getCurrentPositionFraction();
     int32_t Position_Next = 0;
+    
 
 
-    //pedal sync task trial
-
-    if(dap_config_st.payLoadPedalConfig_.pedal_type==1)
-    {
-      //Serial.println("syncing");
- 
-      I2C_sync.beginTransmission((uint8_t)I2C_slave_address);
-      //I2C_sync.endTransmission();
-      uint8_t error=I2C_sync.endTransmission();
-      if(error==0)
-      {
-        I2C_sync.beginTransmission((uint8_t)I2C_slave_address);
-        uint8_t Pedal_position_u8=(uint8_t)(dap_state_basic_st.payloadPedalState_Basic_.pedalPosition_u16/65535*256);
-        //I2C_sync.write(Pedal_position_u8);
-        //I2C_sync.write(Pedal_position_u8);
-        I2C_sync.printf("Hello World! %lu", iii++);
-        delay(1);
-        I2C_sync.endTransmission();
-        uint8_t bytesReceived = I2C_sync.requestFrom((uint8_t)I2C_slave_address, 16);
-        Serial.printf("requestFrom: %u\n", bytesReceived);
-        if ((bool)bytesReceived) {  //If received more than zero bytes
-          uint8_t temp[bytesReceived];
-          I2C_sync.readBytes(temp, bytesReceived);
-          log_print_buf(temp, bytesReceived);
-        }
-        /*
-        I2C_sync.beginTransmission((uint8_t)I2C_slave_address);
-        I2C_sync.requestFrom((uint8_t)I2C_slave_address, 1);
-        delay(1);
-        I2C_sync.endTransmission();
-          
-        while(I2C_sync.available())
-        {
-            
-          Serial.print("Sync:");
-          Serial.println(I2C_sync.read());
-        }
-        */
-      }
-
-      
-
-    }
-
-    if(dap_config_st.payLoadPedalConfig_.pedal_type==2)
-    {
-      if(I2C_data_read)
-      {
-        Serial.print("Slave_Sync:");
-        Serial.println(I2C_Read);
-        I2C_send=(uint8_t)(dap_state_basic_st.payloadPedalState_Basic_.pedalPosition_u16/65535*255);
-        I2C_data_read=false;
-      }
-    }
+    
 
     
 
@@ -1562,6 +1514,109 @@ void OTATask( void * pvParameters )
     //delay(1);
     #endif
   }
+}
+
+//pedal I2C multitask
+int I2C_count=0;
+void I2C_SyncTask( void * pvParameters )
+{
+
+  for(;;)
+  {
+//pedal sync task trial
+
+    if(I2C_count>100)
+    {
+      if(dap_config_st.payLoadPedalConfig_.pedal_type==1)
+      {
+        //Serial.println("syncing");
+  
+        Wire.beginTransmission((uint8_t)I2C_slave_address);
+        //I2C_sync.endTransmission();
+        uint8_t error=Wire.endTransmission();
+        if(error==0)
+        {
+          //Serial.print("Start get I2C sync");
+          Wire.beginTransmission((uint8_t)I2C_slave_address);          
+          //uint8_t Pedal_position_u8=(uint8_t)(dap_state_basic_st.payloadPedalState_Basic_.pedalPosition_u16/65535*256);
+          //Wire.write(Pedal_position_u8);
+          I2C_writeAnything(dap_state_basic_st.payloadPedalState_Basic_.pedalPosition_u16);
+          delay(1);
+          Wire.endTransmission();
+          //Serial.println(Pedal_position_u8);
+          //Serial.print("sended---------------Get--------------");
+          
+          uint8_t bytesReceived=Wire.requestFrom((uint8_t)I2C_slave_address, 2);
+          //Serial.println(bytesReceived);
+          delay(1);
+          while(Wire.available())
+          {
+            //uint8_t temp=Wire.read();
+            uint16_t temp=0;
+            I2C_readAnything(temp);
+            //Serial.print("-------Read:----------");
+            //Serial.println(temp);
+          }
+          /*
+          if ((bool)bytesReceived)
+          {
+            
+            
+            uint8_t temp[bytesReceived];
+            I2C_sync.readBytes(temp, bytesReceived);
+            log_print_buf(temp, bytesReceived);
+            
+          }
+          */
+          
+          
+          //I2C_sync.write(Pedal_position_u8);
+          /*
+          I2C_sync.printf("Hello World! %lu", iii++);
+          delay(1);
+          I2C_sync.endTransmission();
+          uint8_t bytesReceived = I2C_sync.requestFrom((uint8_t)I2C_slave_address, 16);
+          Serial.printf("requestFrom: %u\n", bytesReceived);
+          if ((bool)bytesReceived) {  //If received more than zero bytes
+            uint8_t temp[bytesReceived];
+            I2C_sync.readBytes(temp, bytesReceived);
+            log_print_buf(temp, bytesReceived);
+          }
+          */
+          
+          
+
+          
+        }
+        else
+        {
+          //Serial.print("I2C failed");
+        }
+      }
+      if(dap_config_st.payLoadPedalConfig_.pedal_type==2)
+      {
+        if(I2C_data_read)
+        {
+          //Serial.print("Slave_Sync:");
+          //Serial.println(I2C_Read);
+          I2C_send=dap_state_basic_st.payloadPedalState_Basic_.pedalPosition_u16;
+          I2C_data_read=false;
+        }
+      }
+    
+      
+      
+      I2C_count=0;
+    }
+    else
+    {
+      I2C_count=I2C_count+1;
+    }
+
+
+
+  }
+  
 }
 
 
