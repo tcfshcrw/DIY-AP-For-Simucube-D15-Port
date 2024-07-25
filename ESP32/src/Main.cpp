@@ -41,6 +41,8 @@ bool isv57LifeSignal_b = false;
   bool MCP_status =false;
 #endif
 
+
+
 //#define ALLOW_SYSTEM_IDENTIFICATION
 
 /**********************************************************************************************/
@@ -91,6 +93,8 @@ BitePointOscillation _BitePointOscillation;
 G_force_effect _G_force_effect;
 WSOscillation _WSOscillation;
 Road_impact_effect _Road_impact_effect;
+Custom_vibration CV1;
+Custom_vibration CV2;
 #define ABS_OSCILLATION
 
 
@@ -237,6 +241,13 @@ StepperWithLimits* stepper = NULL;
 TaskHandle_t Task4;
 #endif
 
+
+//I2C sync
+#ifdef Using_I2C_Sync
+  
+  #include "I2CSync.h"
+
+#endif
 
 
 /**********************************************************************************************/
@@ -465,7 +476,7 @@ void setup()
     }
   }
   
-
+  
 
 
   disableCore0WDT();
@@ -584,7 +595,33 @@ void setup()
       //MCP.begin();
     }
   #endif
+  #ifdef Using_I2C_Sync
+      if(dap_config_st.payLoadPedalConfig_.pedal_type==1)
+      {
+        I2C_sync.begin(I2C_SDA,I2C_SCL,I2C_rate);
+        delay(3000);
+        Serial.println("Sync as Master");
 
+      }
+      if(dap_config_st.payLoadPedalConfig_.pedal_type==2)
+      {
+        I2C_sync.onReceive(SynconReceive);
+        I2C_sync.onRequest(SynconRequest);
+        I2C_sync.begin((uint8_t)I2C_slave_address,I2C_SDA,I2C_SCL,I2C_rate);
+        //I2C_sync.begin(I2C_SDA,I2C_SCL,(uint8_t)I2C_slave_address);
+        Serial.println("Sync as Slave");
+        
+
+      }
+      if(dap_config_st.payLoadPedalConfig_.pedal_type==0)
+      {
+          Serial.println("No sync with Clutch");
+      }
+      if(dap_config_st.payLoadPedalConfig_.pedal_type>2)
+      {
+          Serial.println("Please send a config in and try again");
+      }
+  #endif
 
   Serial.println("Setup end");
   
@@ -770,6 +807,8 @@ void pedalUpdateTask( void * pvParameters )
       _G_force_effect.forceOffset(&dap_calculationVariables_st, dap_config_st.payLoadPedalConfig_.G_multi);
       _WSOscillation.forceOffset(&dap_calculationVariables_st);
       _Road_impact_effect.forceOffset(&dap_calculationVariables_st, dap_config_st.payLoadPedalConfig_.Road_multi);
+      CV1.forceOffset(dap_config_st.payLoadPedalConfig_.CV_freq_1,dap_config_st.payLoadPedalConfig_.CV_amp_1);
+      CV2.forceOffset(dap_config_st.payLoadPedalConfig_.CV_freq_2,dap_config_st.payLoadPedalConfig_.CV_amp_2);
     #endif
 
     //update max force with G force effect
@@ -930,11 +969,69 @@ void pedalUpdateTask( void * pvParameters )
 
 
     //Add effect by force
-    float effect_force=absForceOffset+ _BitePointOscillation.BitePoint_Force_offset+_WSOscillation.WS_Force_offset;
+    float effect_force=absForceOffset+ _BitePointOscillation.BitePoint_Force_offset+_WSOscillation.WS_Force_offset+CV1.CV_Force_offset+CV2.CV_Force_offset;
 
     // use interpolation to determine local linearized spring stiffness
     double stepperPosFraction = stepper->getCurrentPositionFraction();
     int32_t Position_Next = 0;
+
+
+    //pedal sync task trial
+
+    if(dap_config_st.payLoadPedalConfig_.pedal_type==1)
+    {
+      //Serial.println("syncing");
+ 
+      I2C_sync.beginTransmission((uint8_t)I2C_slave_address);
+      //I2C_sync.endTransmission();
+      uint8_t error=I2C_sync.endTransmission();
+      if(error==0)
+      {
+        I2C_sync.beginTransmission((uint8_t)I2C_slave_address);
+        uint8_t Pedal_position_u8=(uint8_t)(dap_state_basic_st.payloadPedalState_Basic_.pedalPosition_u16/65535*256);
+        //I2C_sync.write(Pedal_position_u8);
+        //I2C_sync.write(Pedal_position_u8);
+        I2C_sync.printf("Hello World! %lu", iii++);
+        delay(1);
+        I2C_sync.endTransmission();
+        uint8_t bytesReceived = I2C_sync.requestFrom((uint8_t)I2C_slave_address, 16);
+        Serial.printf("requestFrom: %u\n", bytesReceived);
+        if ((bool)bytesReceived) {  //If received more than zero bytes
+          uint8_t temp[bytesReceived];
+          I2C_sync.readBytes(temp, bytesReceived);
+          log_print_buf(temp, bytesReceived);
+        }
+        /*
+        I2C_sync.beginTransmission((uint8_t)I2C_slave_address);
+        I2C_sync.requestFrom((uint8_t)I2C_slave_address, 1);
+        delay(1);
+        I2C_sync.endTransmission();
+          
+        while(I2C_sync.available())
+        {
+            
+          Serial.print("Sync:");
+          Serial.println(I2C_sync.read());
+        }
+        */
+      }
+
+      
+
+    }
+
+    if(dap_config_st.payLoadPedalConfig_.pedal_type==2)
+    {
+      if(I2C_data_read)
+      {
+        Serial.print("Slave_Sync:");
+        Serial.println(I2C_Read);
+        I2C_send=(uint8_t)(dap_state_basic_st.payloadPedalState_Basic_.pedalPosition_u16/65535*255);
+        I2C_data_read=false;
+      }
+    }
+
+    
 
     // select control loop algo
     if (dap_config_st.payLoadPedalConfig_.control_strategy_b <= 1)
@@ -1322,7 +1419,16 @@ void serialCommunicationTask( void * pvParameters )
               {
                 systemIdentificationMode_b = true;
               }
-
+              // trigger Custom effect effect 1
+              if (dap_actions_st.payloadPedalAction_.Trigger_CV_1)
+              {
+                CV1.trigger();
+              }
+              // trigger Custom effect effect 2
+              if (dap_actions_st.payloadPedalAction_.Trigger_CV_2)
+              {
+                CV2.trigger();
+              }
               // trigger return pedal position
               if (dap_actions_st.payloadPedalAction_.returnPedalConfig_u8)
               {
