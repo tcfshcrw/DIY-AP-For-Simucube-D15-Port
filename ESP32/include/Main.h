@@ -148,7 +148,8 @@
   #define ISV57_RXPIN 26 // 16
 
   #define Using_analog_output
-  #define Using_I2C_Sync
+  //#define Using_I2C_Sync
+  #define ESPNOW_Enable
   #define I2C_slave_address 0x15
   #define BLUETOOTH_GAMEPAD
   //#define USB_JOYSTICK

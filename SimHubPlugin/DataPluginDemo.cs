@@ -23,7 +23,7 @@ using static System.Net.Mime.MediaTypeNames;
 static class Constants
 {
     // payload revisiom
-    public const uint pedalConfigPayload_version = 136;
+    public const uint pedalConfigPayload_version = 138;
 
 
     // pyload types
@@ -57,6 +57,9 @@ public struct payloadPedalAction
     public byte G_value;
     public byte WS_u8;
     public byte impact_value;
+    public byte Trigger_CV_1;
+    public byte Trigger_CV_2;
+    public byte Rudder_action;
 };
 
 public struct payloadPedalState_Basic
@@ -137,6 +140,12 @@ public struct payloadPedalConfig
     public byte WS_freq;
     public byte Impact_multi;
     public byte Impact_window;
+    //Custom Vibration 1
+    public byte CV_amp_1;
+    public byte CV_freq_1;
+    //Custom Vibration 2
+    public byte CV_amp_2;
+    public byte CV_freq_2;
     // cubic spline params
     public float cubic_spline_param_a_0;
     public float cubic_spline_param_a_1;
@@ -276,6 +285,7 @@ namespace User.PluginSdkDemo
         public string simhub_theme_color = "#7E87CEFA";
         public uint debug_value = 0;
         public bool Rudder_enable_flag=false;
+        public bool clear_action = false;
 
 
 
@@ -400,6 +410,8 @@ namespace User.PluginSdkDemo
             double _G_force = 128;
             byte WS_value = 0;
             byte Road_impact_value = 0;
+            byte CV1_value = 0;
+            byte CV2_value = 0;
             //bool WS_flag = false;
 
             if (data.GamePaused | (!data.GameRunning))
@@ -473,6 +485,7 @@ namespace User.PluginSdkDemo
                     }
 
                     game_running_index = 1;
+                    
 
                 }
                 else
@@ -531,6 +544,9 @@ namespace User.PluginSdkDemo
                         
                         tmp.payloadPedalAction_.WS_u8 = 0;
                         tmp.payloadPedalAction_.impact_value = 0;
+                        tmp.payloadPedalAction_.Trigger_CV_1 = 0;
+                        tmp.payloadPedalAction_.Trigger_CV_2 = 0;
+                        tmp.payloadPedalAction_.Rudder_action = 0;
                         if (Settings.G_force_enable_flag[pedalIdx] == 1)
                         {
                             tmp.payloadPedalAction_.G_value = (Byte)g_force_last_value;
@@ -604,9 +620,6 @@ namespace User.PluginSdkDemo
                                     update_flag = true;
                                 }
                             }
-
-                            
-
                         }
                         //Road impact
                         if (Settings.Road_impact_enable_flag[pedalIdx] == 1)
@@ -641,8 +654,34 @@ namespace User.PluginSdkDemo
                                 }
                             }
                         }
-                        
-                        
+                        if (Settings.CV1_enable_flag[pedalIdx] == true)
+                        {
+                            if (pluginManager.GetPropertyValue(Settings.CV1_bindings[pedalIdx]) != null)
+                            {
+
+                                CV1_value = Convert.ToByte(pluginManager.GetPropertyValue(Settings.CV1_bindings[pedalIdx]));
+                                if (CV1_value > (Settings.CV1_trigger[pedalIdx]))
+                                {
+                                    tmp.payloadPedalAction_.Trigger_CV_1 = 1;
+                                    update_flag = true;
+                                }
+                            }
+                        }
+                        if (Settings.CV2_enable_flag[pedalIdx] == true)
+                        {
+                            if (pluginManager.GetPropertyValue(Settings.CV2_bindings[pedalIdx]) != null)
+                            {
+
+                                CV2_value = Convert.ToByte(pluginManager.GetPropertyValue(Settings.CV2_bindings[pedalIdx]));
+                                if (CV2_value > (Settings.CV2_trigger[pedalIdx]))
+                                {
+                                    tmp.payloadPedalAction_.Trigger_CV_2 = 1;
+                                    update_flag = true;
+                                }
+                            }
+                        }
+
+
 
 
                         if (pedalIdx == 1)
@@ -698,6 +737,8 @@ namespace User.PluginSdkDemo
                 if (game_running_index == 1)
                 {
                     game_running_index = 0;
+                    clear_action = true;
+                    /*
                     DAP_action_st tmp;
                     tmp.payloadHeader_.version = (byte)Constants.pedalConfigPayload_version;
                     tmp.payloadHeader_.payloadType = (byte)Constants.pedalActionPayload_type;
@@ -706,6 +747,9 @@ namespace User.PluginSdkDemo
                     tmp.payloadPedalAction_.G_value = 128;
                     tmp.payloadPedalAction_.WS_u8 = 0;
                     tmp.payloadPedalAction_.impact_value = 0;
+                    tmp.payloadPedalAction_.Trigger_CV_1 = 0;
+                    tmp.payloadPedalAction_.Trigger_CV_2 = 0;
+                    tmp.payloadPedalAction_.Rudder_action = 0;
                     rpm_last_value = 0;
                     Road_impact_last = 0;
                     debug_value = 0;
@@ -726,6 +770,7 @@ namespace User.PluginSdkDemo
                             _serialPort[pedalIdx].Write(newBuffer, 0, newBuffer.Length);
                         }
                     }
+                    */
                     
                 }
             }
@@ -742,6 +787,9 @@ namespace User.PluginSdkDemo
                 tmp.payloadPedalAction_.G_value = 128;
                 tmp.payloadPedalAction_.WS_u8 = 0;
                 tmp.payloadPedalAction_.impact_value = 0;
+                tmp.payloadPedalAction_.Trigger_CV_1 = 0;
+                tmp.payloadPedalAction_.Trigger_CV_2 = 0;
+                tmp.payloadPedalAction_.Rudder_action = 0;
                 DAP_action_st* v = &tmp;
                 byte* p = (byte*)v;
                 tmp.payloadFooter_.checkSum = checksumCalc(p, sizeof(payloadHeader) + sizeof(payloadPedalAction));
@@ -764,6 +812,75 @@ namespace User.PluginSdkDemo
                     // send query command
                     _serialPort[1].Write(newBuffer, 0, newBuffer.Length);
                 }
+            }
+            if (Rudder_enable_flag)
+            {
+                DAP_action_st tmp;
+                tmp.payloadHeader_.version = (byte)Constants.pedalConfigPayload_version;
+                tmp.payloadHeader_.payloadType = (byte)Constants.pedalActionPayload_type;
+                tmp.payloadPedalAction_.triggerAbs_u8 = 1;
+                tmp.payloadPedalAction_.RPM_u8 = 0;
+                tmp.payloadPedalAction_.G_value = 128;
+                tmp.payloadPedalAction_.WS_u8 = 0;
+                tmp.payloadPedalAction_.impact_value = 0;
+                tmp.payloadPedalAction_.Trigger_CV_1 = 0;
+                tmp.payloadPedalAction_.Trigger_CV_2 = 0;
+                tmp.payloadPedalAction_.Rudder_action = 1;
+                DAP_action_st* v = &tmp;
+                byte* p = (byte*)v;
+                tmp.payloadFooter_.checkSum = checksumCalc(p, sizeof(payloadHeader) + sizeof(payloadPedalAction));
+                int length = sizeof(DAP_action_st);
+                byte[] newBuffer = new byte[length];
+                newBuffer = getBytes_Action(tmp);
+                for (uint PIDX = 0; PIDX<3; PIDX ++)
+                {
+                    if (_serialPort[PIDX].IsOpen)
+                    {
+                        // clear inbuffer 
+                        _serialPort[PIDX].DiscardInBuffer();
+
+                        // send query command
+                        _serialPort[PIDX].Write(newBuffer, 0, newBuffer.Length);
+                    }
+                }
+                Rudder_enable_flag = false;
+
+            }
+            if (clear_action)
+            {
+                
+                DAP_action_st tmp;
+                tmp.payloadHeader_.version = (byte)Constants.pedalConfigPayload_version;
+                tmp.payloadHeader_.payloadType = (byte)Constants.pedalActionPayload_type;
+                tmp.payloadPedalAction_.triggerAbs_u8 = 0;
+                tmp.payloadPedalAction_.RPM_u8 = 0;
+                tmp.payloadPedalAction_.G_value = 128;
+                tmp.payloadPedalAction_.WS_u8 = 0;
+                tmp.payloadPedalAction_.impact_value = 0;
+                tmp.payloadPedalAction_.Trigger_CV_1 = 0;
+                tmp.payloadPedalAction_.Trigger_CV_2 = 0;
+                tmp.payloadPedalAction_.Rudder_action = 0;
+                rpm_last_value = 0;
+                Road_impact_last = 0;
+                debug_value = 0;
+                DAP_action_st* v = &tmp;
+                byte* p = (byte*)v;
+                tmp.payloadFooter_.checkSum = checksumCalc(p, sizeof(payloadHeader) + sizeof(payloadPedalAction));
+                int length = sizeof(DAP_action_st);
+                byte[] newBuffer = new byte[length];
+                newBuffer = getBytes_Action(tmp);
+                for (uint pedalIdx = 0; pedalIdx < 3; pedalIdx++)
+                {
+                    if (_serialPort[pedalIdx].IsOpen)
+                    {
+                        // clear inbuffer 
+                        _serialPort[pedalIdx].DiscardInBuffer();
+
+                        // send query command
+                        _serialPort[pedalIdx].Write(newBuffer, 0, newBuffer.Length);
+                    }
+                }
+                clear_action = false;
             }
 
 

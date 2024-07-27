@@ -3,8 +3,8 @@
 #include "Main.h"
 
 uint16_t I2C_Read;
-#define I2C_DEV_ADDR 0x55
-#define I2C_rate 400000
+#define I2C_rate 100000
+#define I2C_debug_out
 //TwoWire I2C_sync(0);
 bool I2C_sync_status=false;
 bool I2C_data_read=false;
