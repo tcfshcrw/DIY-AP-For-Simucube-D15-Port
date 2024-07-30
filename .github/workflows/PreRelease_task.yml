@@ -5,7 +5,7 @@ name: PreRelease_Build_Task
 on:
   # Triggers the workflow on push or pull request events but only for the main branch
   push:
-    branches: [ develop ] 
+    branches: [ main ] 
   #pull_request:
   #  branches: [ main ]
 
@@ -103,7 +103,10 @@ jobs:
             ./Helper/zip/esp32.zip
             ./Helper/zip/esp32s3.zip
             ./Helper/zip/esp32_speedcrafter.zip
-            
+      # get date
+      - name: Get current date
+        id: date
+        run: echo "::set-output name=date::$(date +'%Y-%m-%d-%H:%M:%S')"
       # create a Prerelease
       # see https://www.youtube.com/watch?v=_ueJ3LrRqPU
       - name: Create PreRelease
@@ -112,8 +115,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: PreRelease${{ github.run_number }}
-          release_name: develop_package_not_stable ${{ github.run_number }}
+          tag_name: Develop_build-${{ steps.date.outputs.date }}
+          release_name: Develop_build-${{ steps.date.outputs.date }}
           prerelease: true
 
       # upload release asset
@@ -260,8 +263,8 @@ jobs:
         prerelease: true
         replacesArtifacts: true
         allowUpdates: true
-        name: develop_package_not_stable  ${{ github.run_number }}
-        tag: PreRelease${{ github.run_number }}
+        name: Develop_build-${{ steps.date.outputs.date }}
+        tag: Develop_build-${{ steps.date.outputs.date }}
 
     # SimHub plugin binaries
     #- name: Upload SimHub release assets
