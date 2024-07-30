@@ -16,18 +16,22 @@ on:
 jobs:
   Build-date:
     runs-on: ubuntu-latest
+    outputs:
+      Version_date: ${{ steps.output_version_date.outputs.Version_date }}
     steps:
       # get date
       - name: Dynamically set MY_DATE environment variable
         run: echo "MY_DATE=$(date +'%Y%m%d.%H%M%S')" >> "$GITHUB_ENV"
       - name: Test MY_DATE variable
         run: echo ${{ env.MY_DATE }}
+      - name: output_version_date
+        id: output_version_date
+        run: echo "Version_date=${{ env.MY_DATE }}" >> "$GITHUB_OUTPUT"
   
   BuildFirmware:
     #runs-on: ubuntu-latest
     runs-on: windows-latest
-    outputs:
-      Version_date: ${{ steps.output_version_date.outputs.Version_date }}
+
     steps:
 
       - name: Set version date
@@ -37,11 +41,9 @@ jobs:
           Add-Content -Path ${env:GITHUB_ENV} -Value "MY_DATE=$(date +'%Y%m%d.%H%M%S')"
           # No output since same step
           echo "Sleep State 1 is ${{ env.MY_DATE }}" 
-          echo "::set-output name=date::${{ env.MY_DATE }}"
+         
   
-      - name: output_version_date
-        id: output_version_date
-        run: echo "Version_date=${{ env.MY_DATE }}" >> "$GITHUB_OUTPUT"
+
     
     # Prepare environment
       - uses: actions/checkout@main
