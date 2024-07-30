@@ -40,9 +40,9 @@ jobs:
           DATE: ${{needs.Build-date.outputs.Version_date}}
         run: |
           # powershell
-          Add-Content -Path ${env:GITHUB_ENV} -Value "MY_DATE_2=$(date +'%Y%m%d.%H%M%S')"
+          Add-Content -Path ${env:GITHUB_ENV} -Value "MY_DATE=Develop_build_$(date +'%Y%m%d.%H%M%S')"
           # No output since same step
-          echo "Sleep State 1 is ${{ env.MY_DATE_2 }}" 
+          echo "Sleep State 1 is ${{ env.MY_DATE }}" 
             
       - name: Get current date
         id: date
@@ -139,8 +139,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
         with:
-          tag_name: nightly-tag-${{ steps.date.outputs.date }}
-          release_name: nightly-build-${{ steps.date.outputs.date }}
+          tag_name: ${{ env.MY_DATE }}
+          release_name: ${{ env.MY_DATE }}
           prerelease: true
 
       # upload release asset
@@ -284,8 +284,8 @@ jobs:
           prerelease: true
           replacesArtifacts: true
           allowUpdates: true
-          name: nightly-build-${{ steps.date.outputs.date }}
-          tag: nightly-tag-${{ steps.date.outputs.date }}
+          name: ${{ env.MY_DATE }}
+          tag: ${{ env.MY_DATE }}
 
     # SimHub plugin binaries
     #- name: Upload SimHub release assets
