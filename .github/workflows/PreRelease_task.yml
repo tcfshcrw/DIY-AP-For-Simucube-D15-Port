@@ -32,24 +32,7 @@ jobs:
     #runs-on: ubuntu-latest
     runs-on: windows-latest
     needs: Build-date
-    steps:
-
-      - name: Set version date
-        id: Version_date
-        env:
-          DATE: ${{needs.Build-date.outputs.Version_date}}
-        run: |
-          # powershell
-          Add-Content -Path ${env:GITHUB_ENV} -Value "MY_DATE=Develop_build_$(date +'%Y%m%d.%H%M%S')"
-          # No output since same step
-          echo "Sleep State 1 is ${{ env.MY_DATE }}" 
-            
-      - name: Get current date
-        id: date
-        run: echo "::set-output name=date::$(date +'%Y%m%d.%H%M%S')" 
-  
-
-    
+    steps:    
     # Prepare environment
       - uses: actions/checkout@main
       - uses: actions/cache@v3
