@@ -116,8 +116,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: Develop_build_echo ${{ env.MY_DATE }}
-          release_name: Develop_build_echo ${{ env.MY_DATE }}
+          tag_name: Develop_build_${{ env.MY_DATE }}
+          release_name: Develop_build_${{ env.MY_DATE }}
           prerelease: true
 
       # upload release asset
@@ -264,8 +264,8 @@ jobs:
         prerelease: true
         replacesArtifacts: true
         allowUpdates: true
-        name: Develop_build_echo ${{ env.MY_DATE }}
-        tag: Develop_build_echo ${{ env.MY_DATE }}
+        name: Develop_build_${{ env.MY_DATE }}
+        tag: Develop_build_${{ env.MY_DATE }}
 
     # SimHub plugin binaries
     #- name: Upload SimHub release assets
