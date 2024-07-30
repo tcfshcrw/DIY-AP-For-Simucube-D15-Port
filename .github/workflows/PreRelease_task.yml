@@ -183,6 +183,11 @@ jobs:
 ########################################################################
 #       Build SimHub plugin
 ########################################################################
+  buildSimhubPlugin:
+      runs-on: windows-2019
+      needs: [BuildFirmware, Build-date]
+      steps:
+      - uses: actions/checkout@v2
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v1
 
