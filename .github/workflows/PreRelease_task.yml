@@ -21,7 +21,14 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    
+      - name: Set the value
+        id: step_one_2
+        run: |
+          echo "action_state=yellow" >> "$GITHUB_ENV"
+      - name: Use the value
+        id: step_two
+        run: |
+      printf '%s\n' "$action_state" # This will output 'yellow'
     # Prepare environment
       - uses: actions/checkout@main
       - uses: actions/cache@v3
@@ -38,13 +45,13 @@ jobs:
 
 
 
-
+    
       # get date
       - name: Get current date
         id: date
-        run: echo "{NOW}=v$(date +'%Y%m%d.%H%M%S')" >> "$GITHUB_ENV"
+        run: echo "NOW=$(date +'%Y%m%d.%H%M%S')" >> "$GITHUB_ENV"
       - name: Dynamically set MY_DATE environment variable
-        run: echo "{MY_DATE}=$(date +'%Y%m%d.%H%M%S')" >> "$GITHUB_ENV"
+        run: echo "MY_DATE=$(date +'%Y%m%d.%H%M%S')" >> "$GITHUB_ENV"
       - name: Test MY_DATE variable
         run: echo ${{ env.MY_DATE }}
     # Build ESP code
