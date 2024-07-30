@@ -43,7 +43,10 @@ jobs:
           Add-Content -Path ${env:GITHUB_ENV} -Value "MY_DATE_2=$(date +'%Y%m%d.%H%M%S')"
           # No output since same step
           echo "Sleep State 1 is ${{ env.MY_DATE_2 }}" 
-         
+            
+      - name: Get current date
+        id: date
+        run: echo "::set-output name=date::$(date +'%Y%m%d.%H%M%S')" 
   
 
     
@@ -134,10 +137,10 @@ jobs:
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DATE: ${{needs.Build-date.outputs.Version_date}}
+          
         with:
-          tag_name: ${{DATE}}
-          release_name: ${{DATE}}
+          tag_name: nightly-tag-${{ steps.date.outputs.date }}
+          release_name: nightly-build-${{ steps.date.outputs.date }}
           prerelease: true
 
       # upload release asset
@@ -180,114 +183,109 @@ jobs:
 ########################################################################
 #       Build SimHub plugin
 ########################################################################
-  buildSimhubPlugin:
-    runs-on: windows-2019
-    needs: [BuildFirmware, Build-date]
-    steps:
-    - uses: actions/checkout@v2
-    - name: Setup MSBuild
-      uses: microsoft/setup-msbuild@v1
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v1
 
-    - name: Setup NuGet
-      uses: NuGet/setup-nuget@v1.0.5
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v1.0.5
+        
+      - name: Setup MS Build Systems
+        uses: microsoft/setup-msbuild@v1.1
+  
+      - uses: actions/cache@v3
+        name: Restore Caches
+        id: cache
+        with:
+          path: |
+            innounp050.rar
+            SimHub.8.01.2.zip
+          key: SimHub.8.01.2
+  
+      - name: Download Requirements # Used to download the SimHub DLLs - only if not in cache.
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: | 
+          aria2c -j1 -o innounp050.rar "https://sourceforge.net/projects/innounp/files/innounp/innounp%200.50/innounp050.rar/download"
+          aria2c -j1 -o SimHub.8.01.2.zip "https://github.com/SHWotever/SimHub/releases/download/9.1.22/SimHub.9.01.22.zip"
       
-    - name: Setup MS Build Systems
-      uses: microsoft/setup-msbuild@v1.1
-
-    - uses: actions/cache@v3
-      name: Restore Caches
-      id: cache
-      with:
-        path: |
-          innounp050.rar
-          SimHub.8.01.2.zip
-        key: SimHub.8.01.2
-
-    - name: Download Requirements # Used to download the SimHub DLLs - only if not in cache.
-      if: steps.cache.outputs.cache-hit != 'true'
-      run: | 
-        aria2c -j1 -o innounp050.rar "https://sourceforge.net/projects/innounp/files/innounp/innounp%200.50/innounp050.rar/download"
-        aria2c -j1 -o SimHub.8.01.2.zip "https://github.com/SHWotever/SimHub/releases/download/9.1.22/SimHub.9.01.22.zip"
-    
-    - name: Extract Requirements # Used to extract the SimHub DLLs
-      run: | 
-        7z x innounp050.rar
-        7z x SimHub.8.01.2.zip
-        dir
-        mkdir "C:\Program Files (x86)\SimHub\"
-        ${{ github.workspace }}\innounp.exe -v -x -b -e -d"C:\Program Files (x86)\SimHub\" SimHubSetup_9.1.22.exe
-    - name: List files in dir
-      run: |
-        ls "C:\Program Files (x86)\SimHub\"
-        
-    #- name: List files in dir 2
-    #  run: |
-    #    ls ${{ github.workspace }}
-    - name: Restore Packages
-      run: nuget restore "SimHubPlugin/User.PluginSdkDemo.sln"
-
-    - name: Build solution
-      run: msbuild "SimHubPlugin/User.PluginSdkDemo.sln" -t:rebuild -property:Configuration=Release
-
-    
-
-
-    # zip plugin binaries
-    - name: ZIP files
-      run: | 
-        7z a ./SimHubPlugin/bin/SimHub_plugin.zip ./SimHubPlugin/bin/*
-
-
-    #- name: List files in dir 3
-    #  run: |
-    #    ls ${{ github.workspace }}/SimHubPlugin
-    #- name: List files in dir 4
-    #  run: |
-    #    ls ${{ github.workspace }}/SimHubPlugin/bin
-        
-    # create a release
-    # see https://www.youtube.com/watch?v=_ueJ3LrRqPU
-    #- name: Create Release
-    #  id: create-new-release
-    #  uses: actions/create-release@v1
-    #  env:
-    #    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    #  with:
-    #    tag_name: ${{ github.run_number }}
-    #    release_name: Release ${{ github.run_number }}
-
-        
-    # # SimHub plugin binaries
-    #- name: Upload SimHub release assets
-    #  id: upload-release-asset-plugin 
-    #  uses: actions/upload-release-asset@v1
-    #  env:
-    #    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    #  with:
-    #    upload_url: ${{ steps.create-new-release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
-    #    asset_path: ./SimHubPlugin/bin/SimHub_plugin.zip
-    #    asset_name: SimHub_plugin.zip
-    #    asset_content_type: application/zip 
-
-
-
-    # zip plugin binaries
-    #- uses: montudor/action-zip@v1
-    #  with:
-    #    args: zip -qq -r ./SimHubPlugin/bin/SimHub_plugin.zip ./SimHubPlugin/bin/
-
-
-    - name: Upload Artifact
-      env:
-        DATE: ${{needs.Build-date.outputs.Version_date}}
-      uses: ncipollo/release-action@v1
-      with:
-        artifacts: '${{ github.workspace }}\SimHubPlugin\bin\DiyActivePedal.dll'
-        prerelease: true
-        replacesArtifacts: true
-        allowUpdates: true
-        name: ${{DATE}}
-        tag: ${{DATE}}
+      - name: Extract Requirements # Used to extract the SimHub DLLs
+        run: | 
+          7z x innounp050.rar
+          7z x SimHub.8.01.2.zip
+          dir
+          mkdir "C:\Program Files (x86)\SimHub\"
+          ${{ github.workspace }}\innounp.exe -v -x -b -e -d"C:\Program Files (x86)\SimHub\" SimHubSetup_9.1.22.exe
+      - name: List files in dir
+        run: |
+          ls "C:\Program Files (x86)\SimHub\"
+          
+      #- name: List files in dir 2
+      #  run: |
+      #    ls ${{ github.workspace }}
+      - name: Restore Packages
+        run: nuget restore "SimHubPlugin/User.PluginSdkDemo.sln"
+  
+      - name: Build solution
+        run: msbuild "SimHubPlugin/User.PluginSdkDemo.sln" -t:rebuild -property:Configuration=Release
+  
+      
+  
+  
+      # zip plugin binaries
+      - name: ZIP files
+        run: | 
+          7z a ./SimHubPlugin/bin/SimHub_plugin.zip ./SimHubPlugin/bin/*
+  
+  
+      #- name: List files in dir 3
+      #  run: |
+      #    ls ${{ github.workspace }}/SimHubPlugin
+      #- name: List files in dir 4
+      #  run: |
+      #    ls ${{ github.workspace }}/SimHubPlugin/bin
+          
+      # create a release
+      # see https://www.youtube.com/watch?v=_ueJ3LrRqPU
+      #- name: Create Release
+      #  id: create-new-release
+      #  uses: actions/create-release@v1
+      #  env:
+      #    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #  with:
+      #    tag_name: ${{ github.run_number }}
+      #    release_name: Release ${{ github.run_number }}
+  
+          
+      # # SimHub plugin binaries
+      #- name: Upload SimHub release assets
+      #  id: upload-release-asset-plugin 
+      #  uses: actions/upload-release-asset@v1
+      #  env:
+      #    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #  with:
+      #    upload_url: ${{ steps.create-new-release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+      #    asset_path: ./SimHubPlugin/bin/SimHub_plugin.zip
+      #    asset_name: SimHub_plugin.zip
+      #    asset_content_type: application/zip 
+  
+  
+  
+      # zip plugin binaries
+      #- uses: montudor/action-zip@v1
+      #  with:
+      #    args: zip -qq -r ./SimHubPlugin/bin/SimHub_plugin.zip ./SimHubPlugin/bin/
+  
+  
+      - name: Upload Artifact
+        env:
+          DATE: ${{needs.Build-date.outputs.Version_date}}
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: '${{ github.workspace }}\SimHubPlugin\bin\DiyActivePedal.dll'
+          prerelease: true
+          replacesArtifacts: true
+          allowUpdates: true
+          name: nightly-build-${{ steps.date.outputs.date }}
+          tag: nightly-tag-${{ steps.date.outputs.date }}
 
     # SimHub plugin binaries
     #- name: Upload SimHub release assets
