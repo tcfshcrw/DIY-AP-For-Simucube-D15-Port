@@ -137,10 +137,10 @@ jobs:
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
+          DATE: ${{needs.Build-date.outputs.Version_date}}
         with:
-          tag_name: ${{ env.MY_DATE }}
-          release_name: ${{ env.MY_DATE }}
+          tag_name: ${{ env.DATE }}
+          release_name: ${{ env.DATE }}
           prerelease: true
 
       # upload release asset
@@ -284,8 +284,8 @@ jobs:
           prerelease: true
           replacesArtifacts: true
           allowUpdates: true
-          name: ${{ env.MY_DATE }}
-          tag: ${{ env.MY_DATE }}
+          name: ${{ env.DATE }}
+          tag: ${{ env.DATE }}
 
     # SimHub plugin binaries
     #- name: Upload SimHub release assets
