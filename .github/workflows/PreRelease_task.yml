@@ -36,11 +36,13 @@ jobs:
 
       - name: Set version date
         id: Version_date
+        env:
+          DATE: ${{needs.Build-date.outputs.Version_date}}
         run: |
           # powershell
-          Add-Content -Path ${env:GITHUB_ENV} -Value "MY_DATE=$(date +'%Y%m%d.%H%M%S')"
+          Add-Content -Path ${env:GITHUB_ENV} -Value "MY_DATE_2=$(date +'%Y%m%d.%H%M%S')"
           # No output since same step
-          echo "Sleep State 1 is ${{ env.MY_DATE }}" 
+          echo "Sleep State 1 is ${{ env.MY_DATE_2 }}" 
          
   
 
@@ -132,9 +134,10 @@ jobs:
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DATE: ${{needs.Build-date.outputs.Version_date}}
         with:
-          tag_name: Develop_build_${{ env.MY_DATE }}
-          release_name: Develop_build_${{ env.MY_DATE }}
+          tag_name: Develop_build_$DATE
+          release_name: Develop_build_$DATE
           prerelease: true
 
       # upload release asset
