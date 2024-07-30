@@ -14,12 +14,8 @@ on:
 # started depends on how many configurations the matrix
 # will produce.
 jobs:
-
-  
-  BuildFirmware:
-    #runs-on: ubuntu-latest
-    runs-on: windows-latest
-
+  Build-date:
+    runs-on: ubuntu-latest
     steps:
       - name: Set the value
         id: step_one_2
@@ -29,6 +25,20 @@ jobs:
         id: step_two
         run: |
           printf '%s\n' "$action_state" 
+      # get date
+      - name: Get current date
+        id: date
+        run: echo "NOW=$(date +'%Y%m%d.%H%M%S')" >> "$GITHUB_ENV"
+      - name: Dynamically set MY_DATE environment variable
+        run: echo "MY_DATE=$(date +'%Y%m%d.%H%M%S')" >> "$GITHUB_ENV"
+      - name: Test MY_DATE variable
+        run: echo ${{ env.MY_DATE }}
+  
+  BuildFirmware:
+    #runs-on: ubuntu-latest
+    runs-on: windows-latest
+
+    steps:
     # Prepare environment
       - uses: actions/checkout@main
       - uses: actions/cache@v3
@@ -45,15 +55,6 @@ jobs:
 
 
 
-    
-      # get date
-      - name: Get current date
-        id: date
-        run: echo "NOW=$(date +'%Y%m%d.%H%M%S')" >> "$GITHUB_ENV"
-      - name: Dynamically set MY_DATE environment variable
-        run: echo "MY_DATE=$(date +'%Y%m%d.%H%M%S')" >> "$GITHUB_ENV"
-      - name: Test MY_DATE variable
-        run: echo ${{ env.MY_DATE }}
     # Build ESP code
       - name: Build PlatformIO Project ESP32
         working-directory: ./ESP32
