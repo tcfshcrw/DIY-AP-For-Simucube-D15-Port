@@ -136,8 +136,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DATE: ${{needs.Build-date.outputs.Version_date}}
         with:
-          tag_name: Develop_build_${{DATE}}
-          release_name: Develop_build_${{DATE}}
+          tag_name: Develop_build_"$DATE"
+          release_name: Develop_build_"$DATE"
           prerelease: true
 
       # upload release asset
@@ -286,8 +286,8 @@ jobs:
         prerelease: true
         replacesArtifacts: true
         allowUpdates: true
-        name: Develop_build_${{DATE}}
-        tag: Develop_build_${{DATE}}
+        name: Develop_build_"$DATE"
+        tag: Develop_build_"$DATE"
 
     # SimHub plugin binaries
     #- name: Upload SimHub release assets
