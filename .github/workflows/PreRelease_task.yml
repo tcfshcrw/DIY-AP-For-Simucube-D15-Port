@@ -42,9 +42,9 @@ jobs:
       # get date
       - name: Get current date
         id: date
-        run: echo "NOW=v$(date +'%Y%m%d.%H%M%S')" >> $GITHUB_ENV
+        run: echo "{NOW}=v$(date +'%Y%m%d.%H%M%S')" >> $GITHUB_STATE
       - name: Dynamically set MY_DATE environment variable
-        run: echo "MY_DATE=$(date +'%Y%m%d.%H%M%S')" >> $GITHUB_ENV
+        run: echo "{MY_DATE}=$(date +'%Y%m%d.%H%M%S')" >> $GITHUB_STATE
       - name: Test MY_DATE variable
         run: echo ${{ env.MY_DATE }}
     # Build ESP code
