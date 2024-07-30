@@ -26,7 +26,7 @@ jobs:
         run: echo ${{ env.MY_DATE }}
       - name: output_version_date
         id: output_version_date
-        run: echo "Version_date=${{ env.MY_DATE }}" >> "$GITHUB_OUTPUT"
+        run: echo "Version_date=Develop_Package_v${{ env.MY_DATE }}" >> "$GITHUB_OUTPUT"
   
   BuildFirmware:
     #runs-on: ubuntu-latest
@@ -136,8 +136,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DATE: ${{needs.Build-date.outputs.Version_date}}
         with:
-          tag_name: Develop_build_"$DATE"
-          release_name: Develop_build_"$DATE"
+          tag_name: "$DATE"
+          release_name: "$DATE"
           prerelease: true
 
       # upload release asset
@@ -286,8 +286,8 @@ jobs:
         prerelease: true
         replacesArtifacts: true
         allowUpdates: true
-        name: Develop_build_"$DATE"
-        tag: Develop_build_"$DATE"
+        name: "$DATE"
+        tag: "$DATE"
 
     # SimHub plugin binaries
     #- name: Upload SimHub release assets
