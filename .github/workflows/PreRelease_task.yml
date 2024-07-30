@@ -34,7 +34,7 @@ jobs:
         id: Version_date
         run: |
           # powershell
-          Add-Content -Path ${env:GITHUB_ENV} -Value "MY_DATE=$(date +'%Y%m%d.%H%M%S')" >> 
+          Add-Content -Path ${env:GITHUB_ENV} -Value "MY_DATE=$(date +'%Y%m%d.%H%M%S')"
           # No output since same step
           echo "Sleep State 1 is ${{ env.MY_DATE }}" 
           echo "::set-output name=date::${{ env.MY_DATE }}"
