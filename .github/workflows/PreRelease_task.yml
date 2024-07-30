@@ -278,14 +278,16 @@ jobs:
 
 
     - name: Upload Artifact
+      env:
+        DATE: ${{needs.Build-date.outputs.Version_date}}
       uses: ncipollo/release-action@v1
       with:
         artifacts: '${{ github.workspace }}\SimHubPlugin\bin\DiyActivePedal.dll'
         prerelease: true
         replacesArtifacts: true
         allowUpdates: true
-        name: Develop_build_${{ env.MY_DATE }}
-        tag: Develop_build_${{ env.MY_DATE }}
+        name: Develop_build_$DATE
+        tag: Develop_build_$DATE
 
     # SimHub plugin binaries
     #- name: Upload SimHub release assets
