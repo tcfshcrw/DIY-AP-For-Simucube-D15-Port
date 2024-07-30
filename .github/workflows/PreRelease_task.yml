@@ -28,6 +28,24 @@ jobs:
     runs-on: windows-latest
 
     steps:
+
+      - name: Set the value1
+        id: step_one1
+        run: |
+          # powershell
+          Add-Content -Path ${env:GITHUB_ENV} -Value "MY_DATE=$(date +'%Y%m%d.%H%M%S')"
+          # No output since same step
+          echo "Sleep State 1 is ${{ env.MY_DATE }}" 
+  
+      - name: Set the value2
+        id: step_one2
+        shell: cmd
+        run: |
+          rem windows command
+          printf "sleep_state2=purple" >> %GITHUB_ENV%
+          rem No output since same step
+          printf "Sleep State 2 is ${{ env.sleep_state2 }}"
+    
     # Prepare environment
       - uses: actions/checkout@main
       - uses: actions/cache@v3
