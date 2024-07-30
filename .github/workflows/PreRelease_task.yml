@@ -42,7 +42,7 @@ jobs:
       # get date
       - name: Get current date
         id: date
-        run: echo "::set-output name=date::v$(date +'%Y%m%d.%H%M%S')"
+        run: echo "NOW=v$(date +'%Y%m%d.%H%M%S')" >> $GITHUB_ENV
     # Build ESP code
       - name: Build PlatformIO Project ESP32
         working-directory: ./ESP32
@@ -115,8 +115,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: Develop_build-${{ steps.date.outputs.date }}
-          release_name: Develop_build-${{ steps.date.outputs.date }}
+          tag_name: Develop_build-${{ env.NOW }}
+          release_name: Develop_build-${{ env.NOW }}
           prerelease: true
 
       # upload release asset
@@ -263,8 +263,8 @@ jobs:
         prerelease: true
         replacesArtifacts: true
         allowUpdates: true
-        name: Develop_build-${{ steps.date.outputs.date }}
-        tag: Develop_build-${{ steps.date.outputs.date }}
+        name: Develop_build-${{ env.NOW }}
+        tag: Develop_build-${{ env.NOW }}
 
     # SimHub plugin binaries
     #- name: Upload SimHub release assets
