@@ -24,11 +24,11 @@ jobs:
       - name: Set the value
         id: step_one_2
         run: |
-          echo "action_state=yellow" >> "$GITHUB_ENV"
+          echo "action_state=yellow" >> $GITHUB_ENV
       - name: Use the value
         id: step_two
         run: |
-          printf '%s\n' "$action_state" # This will output 'yellow'
+          printf '%s\n' "$action_state" 
     # Prepare environment
       - uses: actions/checkout@main
       - uses: actions/cache@v3
