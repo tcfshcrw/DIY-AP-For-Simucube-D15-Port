@@ -2,7 +2,6 @@
 /* Todo*/
 // https://github.com/espressif/arduino-esp32/issues/7779
 
-
 #define ESTIMATE_LOADCELL_VARIANCE
 #define ISV_COMMUNICATION
 //#define PRINT_SERVO_STATES
@@ -41,6 +40,8 @@ bool isv57LifeSignal_b = false;
   bool MCP_status =false;
 #endif
 
+
+
 //#define ALLOW_SYSTEM_IDENTIFICATION
 
 /**********************************************************************************************/
@@ -53,7 +54,8 @@ void pedalUpdateTask( void * pvParameters );
 void serialCommunicationTask( void * pvParameters );
 void servoCommunicationTask( void * pvParameters );
 void OTATask( void * pvParameters );
-
+void I2C_SyncTask( void * pvParameters);
+void ESPNOW_SyncTask( void * pvParameters);
 // https://www.tutorialspoint.com/cyclic-redundancy-check-crc-in-arduino
 uint16_t checksumCalculator(uint8_t * data, uint16_t length)
 {
@@ -93,6 +95,7 @@ WSOscillation _WSOscillation;
 Road_impact_effect _Road_impact_effect;
 Custom_vibration CV1;
 Custom_vibration CV2;
+Rudder _rudder;
 #define ABS_OSCILLATION
 
 
@@ -240,6 +243,20 @@ TaskHandle_t Task4;
 #endif
 
 
+//I2C sync
+#ifdef Using_I2C_Sync
+  
+  #include "I2CSync.h"
+  TaskHandle_t Task5;
+#endif
+
+//ESPNOW
+#ifdef ESPNOW_Enable
+  #include "ESPNOW_lib.h"
+  TaskHandle_t Task6;
+#endif
+
+
 
 /**********************************************************************************************/
 /*                                                                                            */
@@ -269,7 +286,10 @@ void setup()
   delay(3000);
   Serial.println("This work is licensed under a Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.");
   Serial.println("Please check github repo for more detail: https://github.com/ChrGri/DIY-Sim-Racing-FFB-Pedal");
+  //printout the github releasing version
 
+
+  
 // check whether iSV57 communication can be established
 // and in case, (a) send tuned servo parameters and (b) prepare the servo for signal read
 #ifdef ISV_COMMUNICATION
@@ -293,6 +313,9 @@ void setup()
     ESP.restart();
   }
 
+  // reset iSV57 alarms
+  bool servoAlarmsCleared = isv57.clearServoAlarms();
+  delay(500);
 
   Serial.print("iSV57 communication state:  ");
   Serial.println(isv57LifeSignal_b);
@@ -467,7 +490,7 @@ void setup()
     }
   }
   
-
+  
 
 
   disableCore0WDT();
@@ -481,7 +504,7 @@ void setup()
                     NULL,        /* parameter of the task */
                     1,           /* priority of the task */
                     &Task1,      /* Task handle to keep track of created task */
-                    0);          /* pin task to core 1 */
+                    1);          /* pin task to core 1 */
   delay(500);
 
   xTaskCreatePinnedToCore(
@@ -492,7 +515,7 @@ void setup()
                     NULL,      
                     1,         
                     &Task2,    
-                    1);     
+                    0);     
   delay(500);
 
   #ifdef ISV_COMMUNICATION
@@ -505,7 +528,7 @@ void setup()
                       NULL,      
                       1,         
                       &Task3,    
-                      1);     
+                      0);     
     delay(500);
 #endif
 
@@ -541,7 +564,7 @@ void setup()
                     NULL,      
                     1,         
                     &Task4,    
-                    1);     
+                    0);     
       delay(500);
     }
   #endif
@@ -586,7 +609,62 @@ void setup()
       //MCP.begin();
     }
   #endif
+  #ifdef Using_I2C_Sync
+    dap_calculationVariables_st.Rudder_status=false;
+      if(dap_config_st.payLoadPedalConfig_.pedal_type==1)
+      {
+        I2C_initialize();
 
+      }
+      if(dap_config_st.payLoadPedalConfig_.pedal_type==2)
+      {
+        I2C_initialize_slave();        
+      }
+      if(dap_config_st.payLoadPedalConfig_.pedal_type==0)
+      {
+          Serial.println("No sync with Clutch");
+      }
+      if(dap_config_st.payLoadPedalConfig_.pedal_type>2)
+      {
+          Serial.println("Please send a config in and try again");
+      }
+              // make the update as task
+        xTaskCreatePinnedToCore(
+                      I2C_SyncTask,   
+                      "I2C_update_Task", 
+                      3000,  
+                      //STACK_SIZE_FOR_TASK_2,    
+                      NULL,      
+                      1,         
+                      &Task5,    
+                      0);     
+        delay(500);
+
+  #endif
+
+  //enable ESP-NOW
+  #ifdef ESPNOW_Enable
+  dap_calculationVariables_st.rudder_brake_status=false;
+  
+  if(dap_config_st.payLoadPedalConfig_.OTA_flag==0)
+  {
+    ESPNow_initialize();
+    xTaskCreatePinnedToCore(
+                      ESPNOW_SyncTask,   
+                      "ESPNOW_update_Task", 
+                      3000,  
+                      //STACK_SIZE_FOR_TASK_2,    
+                      NULL,      
+                      1,         
+                      &Task6,    
+                      0);     
+    delay(500);
+      
+    
+}
+    
+
+  #endif
 
   Serial.println("Setup end");
   
@@ -774,6 +852,8 @@ void pedalUpdateTask( void * pvParameters )
       _Road_impact_effect.forceOffset(&dap_calculationVariables_st, dap_config_st.payLoadPedalConfig_.Road_multi);
       CV1.forceOffset(dap_config_st.payLoadPedalConfig_.CV_freq_1,dap_config_st.payLoadPedalConfig_.CV_amp_1);
       CV2.forceOffset(dap_config_st.payLoadPedalConfig_.CV_freq_2,dap_config_st.payLoadPedalConfig_.CV_amp_2);
+      //_rudder.offset_calculate(&dap_calculationVariables_st);
+      _rudder.force_offset_calculate(&dap_calculationVariables_st);
     #endif
 
     //update max force with G force effect
@@ -935,10 +1015,19 @@ void pedalUpdateTask( void * pvParameters )
 
     //Add effect by force
     float effect_force=absForceOffset+ _BitePointOscillation.BitePoint_Force_offset+_WSOscillation.WS_Force_offset+CV1.CV_Force_offset+CV2.CV_Force_offset;
-
+    effect_force=effect_force+_rudder.force_offset_filter;
     // use interpolation to determine local linearized spring stiffness
     double stepperPosFraction = stepper->getCurrentPositionFraction();
     int32_t Position_Next = 0;
+
+    //Position_Next=_rudder.offset_filter;
+    
+    
+
+
+    
+
+    
 
     // select control loop algo
     if (dap_config_st.payLoadPedalConfig_.control_strategy_b <= 1)
@@ -951,6 +1040,9 @@ void pedalUpdateTask( void * pvParameters )
       Position_Next = MoveByForceTargetingStrategy(filteredReading, stepper, &forceCurve, &dap_calculationVariables_st, &dap_config_st, effect_force, changeVelocity, stepper_vel_filtered_fl32, stepper_accel_filtered_fl32, d_phi_d_x, d_x_hor_d_phi);
     }
 
+    //add rudder
+
+    
     
     
 
@@ -984,7 +1076,7 @@ void pedalUpdateTask( void * pvParameters )
     Position_Next +=absPosOffset;
     Position_Next = (int32_t)constrain(Position_Next, dap_calculationVariables_st.stepperPosMinEndstop, dap_calculationVariables_st.stepperPosMaxEndstop);
     
-    
+    dap_calculationVariables_st.current_pedal_position=Position_Next;
     //bitepoint trigger
 
     int32_t BP_trigger_value=dap_config_st.payLoadPedalConfig_.BP_trigger_value;
@@ -1038,15 +1130,34 @@ void pedalUpdateTask( void * pvParameters )
     {
       if(xSemaphoreTake(semaphore_updateJoystick, (TickType_t)1)==pdTRUE) {
 
-        if (1 == dap_config_st.payLoadPedalConfig_.travelAsJoystickOutput_u8)
+        
+        if(dap_calculationVariables_st.Rudder_status&&dap_calculationVariables_st.rudder_brake_status)
         {
-          joystickNormalizedToInt32 = NormalizeControllerOutputValue(Position_Next, dap_calculationVariables_st.stepperPosMin, dap_calculationVariables_st.stepperPosMax, dap_config_st.payLoadPedalConfig_.maxGameOutput);
+          if (1 == dap_config_st.payLoadPedalConfig_.travelAsJoystickOutput_u8)
+          {
+            joystickNormalizedToInt32 = NormalizeControllerOutputValue((Position_Next-dap_calculationVariables_st.stepperPosRange/2), dap_calculationVariables_st.stepperPosMin, dap_calculationVariables_st.stepperPosMin+dap_calculationVariables_st.stepperPosRange/2, dap_config_st.payLoadPedalConfig_.maxGameOutput);
+            joystickNormalizedToInt32 = constrain(joystickNormalizedToInt32,0,JOYSTICK_MAX_VALUE);
+          }
+          else
+          {
+            //joystickNormalizedToInt32 = NormalizeControllerOutputValue(loadcellReading, dap_calculationVariables_st.Force_Min, dap_calculationVariables_st.Force_Max, dap_config_st.payLoadPedalConfig_.maxGameOutput);
+            
+            joystickNormalizedToInt32 = NormalizeControllerOutputValue((filteredReading-0.5*dap_calculationVariables_st.Force_Range), dap_calculationVariables_st.Force_Min, dap_calculationVariables_st.Force_Min+0.5*dap_calculationVariables_st.Force_Range, dap_config_st.payLoadPedalConfig_.maxGameOutput);
+
+          }
         }
         else
         {
-          //joystickNormalizedToInt32 = NormalizeControllerOutputValue(loadcellReading, dap_calculationVariables_st.Force_Min, dap_calculationVariables_st.Force_Max, dap_config_st.payLoadPedalConfig_.maxGameOutput);
-          
-          joystickNormalizedToInt32 = NormalizeControllerOutputValue(filteredReading, dap_calculationVariables_st.Force_Min, dap_calculationVariables_st.Force_Max, dap_config_st.payLoadPedalConfig_.maxGameOutput);
+          if (1 == dap_config_st.payLoadPedalConfig_.travelAsJoystickOutput_u8)
+          {
+            joystickNormalizedToInt32 = NormalizeControllerOutputValue(Position_Next, dap_calculationVariables_st.stepperPosMin, dap_calculationVariables_st.stepperPosMax, dap_config_st.payLoadPedalConfig_.maxGameOutput);
+          }
+          else
+          {
+            //joystickNormalizedToInt32 = NormalizeControllerOutputValue(loadcellReading, dap_calculationVariables_st.Force_Min, dap_calculationVariables_st.Force_Max, dap_config_st.payLoadPedalConfig_.maxGameOutput);
+            
+            joystickNormalizedToInt32 = NormalizeControllerOutputValue(filteredReading, dap_calculationVariables_st.Force_Min, dap_calculationVariables_st.Force_Max, dap_config_st.payLoadPedalConfig_.maxGameOutput);
+          }
         }
         
         xSemaphoreGive(semaphore_updateJoystick);
@@ -1347,6 +1458,40 @@ void serialCommunicationTask( void * pvParameters )
                 Serial.write((char*)dap_config_st_local_ptr, sizeof(DAP_config_st));
                 Serial.print("\r\n");
               }
+              if(dap_actions_st.payloadPedalAction_.Rudder_action==1)
+              {
+                if(dap_calculationVariables_st.Rudder_status==false)
+                {
+                  dap_calculationVariables_st.Rudder_status=true;
+                  Serial.println("Rudder on");
+                  //Serial.print("status:");
+                  //Serial.println(dap_calculationVariables_st.Rudder_status);
+                }
+                else
+                {
+                  dap_calculationVariables_st.Rudder_status=false;
+                  Serial.println("Rudder off");
+                  //Serial.print("status:");
+                  //Serial.println(dap_calculationVariables_st.Rudder_status);
+                }
+              }
+              if(dap_actions_st.payloadPedalAction_.Rudder_brake_action==1)
+              {
+                if(dap_calculationVariables_st.rudder_brake_status==false&&dap_calculationVariables_st.Rudder_status==true)
+                {
+                  dap_calculationVariables_st.rudder_brake_status=true;
+                  Serial.println("Rudder brake on");
+                  //Serial.print("status:");
+                  //Serial.println(dap_calculationVariables_st.Rudder_status);
+                }
+                else
+                {
+                  dap_calculationVariables_st.rudder_brake_status=false;
+                  Serial.println("Rudder brake off");
+                  //Serial.print("status:");
+                  //Serial.println(dap_calculationVariables_st.Rudder_status);
+                }
+              }
 
 
             }
@@ -1448,7 +1593,31 @@ void serialCommunicationTask( void * pvParameters )
       }
       //Serial.print(" 4");
       //Serial.print("\r\n");
-      SetControllerOutputValue(joystickNormalizedToInt32_local);
+      if(dap_calculationVariables_st.Rudder_status)
+      {
+        if(dap_calculationVariables_st.rudder_brake_status)
+        {
+          SetControllerOutputValue_rudder(JOYSTICK_RANGE/2,joystickNormalizedToInt32_local);
+        }
+        else
+        {
+          //deadzone 2%
+          if(joystickNormalizedToInt32_local<=(int32_t)(JOYSTICK_RANGE*0.48)||joystickNormalizedToInt32_local>=(int32_t)(JOYSTICK_RANGE*0.52))
+          {
+            SetControllerOutputValue(joystickNormalizedToInt32_local);
+          }
+          else
+          {
+            SetControllerOutputValue(JOYSTICK_RANGE/2);
+          }
+        }       
+      }
+      else
+      {
+        //general output
+        SetControllerOutputValue(joystickNormalizedToInt32_local);
+      }
+      
     }
 
   /*#ifdef SERIAL_TIMEOUT
@@ -1471,6 +1640,236 @@ void OTATask( void * pvParameters )
   }
 }
 
+//pedal I2C multitask
+#ifdef Using_I2C_Sync
+int I2C_count=0;
+int error_count=0;
+int print_count=0;
+uint8_t error_out;
+void I2C_SyncTask( void * pvParameters )
+{
+
+  for(;;)
+  {
+    //Serial.println("syncing");
+    if(dap_calculationVariables_st.Rudder_status)
+    {
+      //Serial.println("Rudder status:1");
+      if(I2C_count>100)
+      {
+        if(dap_config_st.payLoadPedalConfig_.pedal_type==1)
+        {
+          //Serial.println("syncing");
+
+    
+          Wire.beginTransmission((uint8_t)I2C_slave_address);
+          //I2C_sync.endTransmission();
+          error_out=Wire.endTransmission();
+          if(error_out==0)
+          {
+            //Serial.print("Start get I2C sync");
+            Wire.beginTransmission((uint8_t)I2C_slave_address);          
+            //uint8_t Pedal_position_u8=(uint8_t)(dap_state_basic_st.payloadPedalState_Basic_.pedalPosition_u16/65535*256);
+            //Wire.write(Pedal_position_u8);
+            I2C_writeAnything(dap_state_basic_st.payloadPedalState_Basic_.pedalPosition_u16);
+            delay(1);
+            Wire.endTransmission();
+            //Serial.println(Pedal_position_u8);
+            //Serial.print("sended---------------Get--------------");
+            
+            uint8_t bytesReceived=Wire.requestFrom((uint8_t)I2C_slave_address, 2);
+            //Serial.println(bytesReceived);
+            delay(1);
+            while(Wire.available())
+            {
+              //uint8_t temp=Wire.read();
+              uint16_t temp=0;
+              I2C_readAnything(temp);
+              dap_calculationVariables_st.sync_pedal_position=temp;
+
+
+            }
+            /*
+            if(print_count>300)
+            {
+              Serial.print("-------Read:----------");
+              Serial.println(dap_calculationVariables_st.sync_pedal_position);
+              print_count=0;
+            }
+            print_count++;
+            */
+            /*
+            if ((bool)bytesReceived)
+            {
+              
+              
+              uint8_t temp[bytesReceived];
+              I2C_sync.readBytes(temp, bytesReceived);
+              log_print_buf(temp, bytesReceived);
+              
+            }
+            */
+            
+            
+            //I2C_sync.write(Pedal_position_u8);
+            /*
+            I2C_sync.printf("Hello World! %lu", iii++);
+            delay(1);
+            I2C_sync.endTransmission();
+            uint8_t bytesReceived = I2C_sync.requestFrom((uint8_t)I2C_slave_address, 16);
+            Serial.printf("requestFrom: %u\n", bytesReceived);
+            if ((bool)bytesReceived) {  //If received more than zero bytes
+              uint8_t temp[bytesReceived];
+              I2C_sync.readBytes(temp, bytesReceived);
+              log_print_buf(temp, bytesReceived);
+            }
+            */
+            
+            
+
+            
+          }
+
+        }
+        if(dap_config_st.payLoadPedalConfig_.pedal_type==2)
+        {
+          
+          if(I2C_data_read)
+          {
+            
+            I2C_send=dap_state_basic_st.payloadPedalState_Basic_.pedalPosition_u16;
+            dap_calculationVariables_st.sync_pedal_position=I2C_Read;
+            I2C_data_read=false;
+          }
+          
+         /*
+          if(print_count>10)
+          {
+            Serial.print("Slave_Sync:");
+            Serial.println(I2C_Read);
+            print_count=0;
+          }
+          print_count++;
+          */
+            
+          
+        }
+      
+        
+        
+        I2C_count=0;
+      }
+      I2C_count=I2C_count+1;      
+    }
+    #ifdef I2C_debug_out
+        if(print_count>30000000)
+        {
+          Serial.print("Rudder Status:");
+          Serial.println(dap_calculationVariables_st.Rudder_status);
+          Serial.print("Pedal type:");
+          Serial.println(dap_config_st.payLoadPedalConfig_.pedal_type);
+          Serial.print("---Sync Value--");
+          Serial.println(dap_calculationVariables_st.sync_pedal_position);     
+          Serial.print("---Send Value--");
+          Serial.println(dap_calculationVariables_st.current_pedal_position);         
+          if(error_out>0)
+          {
+            Serial.println("I2C failed");
+          }
+          
+          
+          print_count=0;
+        }
+        else
+        {
+          print_count++;
+        } 
+    #endif
+    
+
+
+
+  }
+  
+}
+#endif
+
+#ifdef ESPNOW_Enable
+int ESPNOW_count=0;
+int error_count=0;
+int print_count=0;
+uint8_t error_out;
+void ESPNOW_SyncTask( void * pvParameters )
+{
+  for(;;)
+  {
+      if(ESPNOW_count>20)
+      {
+        //send the data to master
+        sendMessageToMaster(joystickNormalizedToInt32);
+        //rudder sync
+        if(dap_calculationVariables_st.Rudder_status)
+        {
+          if(ESPNow_initial_status==false)
+          {
+            ESPNow_initialize();
+          }
+          else
+          {
+            dap_calculationVariables_st.current_pedal_position_ratio=((float)(dap_calculationVariables_st.current_pedal_position-dap_calculationVariables_st.stepperPosMin))/((float)dap_calculationVariables_st.stepperPosRange);
+            _ESPNow_Send.pedal_position_ratio=dap_calculationVariables_st.current_pedal_position_ratio;
+            _ESPNow_Send.pedal_position=dap_calculationVariables_st.current_pedal_position;
+            //ESPNow_send=dap_calculationVariables_st.current_pedal_position; 
+            esp_err_t result = ESPNow.send_message(Recv_mac,(uint8_t *) &_ESPNow_Send,sizeof(_ESPNow_Send));  
+            if (result != ESP_OK) 
+            {
+              Serial.println("Error sending the data");
+            }
+
+            if(ESPNow_update)
+            {
+              //dap_calculationVariables_st.sync_pedal_position=ESPNow_recieve;
+              dap_calculationVariables_st.sync_pedal_position=_ESPNow_Recv.pedal_position;
+              dap_calculationVariables_st.Sync_pedal_position_ratio=_ESPNow_Recv.pedal_position_ratio;
+              ESPNow_update=false;
+            }
+            ESPNOW_count=0;
+          }
+        }
+      } 
+      else
+      {
+        ESPNOW_count++;          
+      }
+      
+      #ifdef ESPNow_debug
+          if(print_count>1500)
+          {
+            Serial.print("Rudder Status:");
+            Serial.println(dap_calculationVariables_st.Rudder_status);
+            Serial.print("Pedal type:");
+            Serial.println(dap_config_st.payLoadPedalConfig_.pedal_type);
+            Serial.print("---Sync Value--");
+            Serial.println(dap_calculationVariables_st.sync_pedal_position);
+            Serial.print("---Recieve Value--");
+            Serial.println(_ESPNow_Recv.pedal_position_ratio);        
+            Serial.print("---Send Value--");
+            Serial.println(dap_calculationVariables_st.current_pedal_position);                  
+            
+            print_count=0;
+          }
+          else
+          {
+            print_count++;
+            
+          } 
+          
+               
+      #endif
+      delay(1);
+  }
+}
+#endif
 
 
 #ifdef ISV_COMMUNICATION
