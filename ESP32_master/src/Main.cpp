@@ -62,7 +62,12 @@ uint8_t esp_master[] = {0x36, 0x33, 0x33, 0x33, 0x33, 0x31};
 uint8_t Clu_mac[] = {0x36, 0x33, 0x33, 0x33, 0x33, 0x32};
 uint8_t Gas_mac[] = {0x36, 0x33, 0x33, 0x33, 0x33, 0x33};
 uint8_t Brk_mac[] = {0x36, 0x33, 0x33, 0x33, 0x33, 0x34};
-
+uint16_t pedal_throttle_value=0;
+uint16_t pedal_brake_value=0;
+uint16_t pedal_cluth_value=0;
+uint16_t pedal_brake_rudder_value=0;
+uint16_t pedal_throttle_rudder_value=0;
+bool joystick_update=false;
 
 typedef struct struct_message {
     uint64_t cycleCnt_u64;
@@ -82,24 +87,39 @@ void OnDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
 	#ifdef ACTIVATE_JOYSTICK_OUTPUT
 	// normalize controller output
 	int32_t joystickNormalizedToInt32 = NormalizeControllerOutputValue(myData.controllerValue_i32, 0, 10000, 100); 
-
+	if(mac_addr[5]==Clu_mac[5])
+	{
+		pedal_cluth_value=joystickNormalizedToInt32;
+		//joystick_update=true;
+	}
+	if(mac_addr[5]==Brk_mac[5])
+	{
+		pedal_brake_value=joystickNormalizedToInt32;
+		//joystick_update=true;
+	}
+	if(mac_addr[5]==Gas_mac[5])
+	{
+		pedal_throttle_value=joystickNormalizedToInt32;
+		//joystick_update=true;
+	}
 	// send controller output
-	if (IsControllerReady()) 
-	{	
+	
+	//if (IsControllerReady()) 
+	//{	
 		// check whether sender was clutch, brake or throttle
 		//check last macadress to identufy pedal
-		if(mac_addr[5]==0x32)
-		{
-			SetControllerOutputValueAccelerator(joystickNormalizedToInt32);
-		}
-		if(mac_addr[5]==0x33)
-		{
-			SetControllerOutputValueBrake(joystickNormalizedToInt32);
-		}
-		if(mac_addr[5]==0x34)
-		{
-			SetControllerOutputValueThrottle(joystickNormalizedToInt32);
-		}
+		//if(mac_addr[5]==0x32)
+		//{
+		//	SetControllerOutputValueAccelerator(joystickNormalizedToInt32);
+		//}
+		//if(mac_addr[5]==0x33)
+		//{
+		//	SetControllerOutputValueBrake(joystickNormalizedToInt32);
+		//}
+		//if(mac_addr[5]==0x34)
+		//{
+			//SetControllerOutputValueThrottle(joystickNormalizedToInt32);
+		//}
 		//boolean clutchCheck_b = true;
 		//boolean brakeCheck_b = true;
 		//boolean throttleCheck_b = true;
@@ -129,9 +149,9 @@ void OnDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
 		}
 		*/
 
-		joystickSendState();
+		//joystickSendState();
 		
-	}
+	//}
 	//Serial.print("controllerValue_i32: ");
 	//Serial.println(myData.controllerValue_i32);	
 
@@ -183,20 +203,20 @@ void setup()
 	//WiFi.mode(WIFI_STA);
 	//Change ESP32 Mac Address
 	WiFi.mode(WIFI_MODE_STA);
-    //Serial.println("Initializing Rudder, please wait"); 
-    //Serial.print("Current MAC Address:  ");  
-    //Serial.println(WiFi.macAddress());
+    Serial.println("Initializing Rudder, please wait"); 
+    Serial.print("Current MAC Address:  ");  
+    Serial.println(WiFi.macAddress());
 	esp_err_t err = esp_wifi_set_mac(WIFI_IF_STA, &esp_master[0]);
 	if (err == ESP_OK) 
 	{
-		//Serial.println("Success changing Mac Address");
+		Serial.println("Success changing Mac Address");
 		
 	}
-    //Serial.print("Modified MAC Address:  ");  
-    //Serial.println(WiFi.macAddress());
+    Serial.print("Modified MAC Address:  ");  
+    Serial.println(WiFi.macAddress());
 	delay(300);
 	ESPNow.init();
-    //Serial.println("wait 10s for ESPNOW initialized");
+    Serial.println("wait 10s for ESPNOW initialized");
 	delay(10000);
 	ESPNow.add_peer(Clu_mac);
 	ESPNow.add_peer(Brk_mac);
@@ -233,7 +253,7 @@ void setup()
 	// Register for a callback function that will be called when data is received
 	//esp_now_register_recv_cb(esp_now_recv_cb_t(OnDataRecv));
 	ESPNow.reg_recv_cb(OnDataRecv);
-	//Serial.println("ESPNow Comunication Starting");
+	Serial.println("ESPNow Comunication Starting");
 }
 
 
@@ -256,5 +276,16 @@ void loop() {
 	delay(10);
 	cycleCntr_u64++;
 	//Serial.println(cycleCntr_u64);
+	
+	
+	if(IsControllerReady())
+	{
+		SetControllerOutputValueAccelerator(pedal_cluth_value);
+		SetControllerOutputValueBrake(pedal_brake_value);
+		SetControllerOutputValueThrottle(pedal_throttle_value);
+		joystickSendState();
+	}
+		
+	
 	
 }
