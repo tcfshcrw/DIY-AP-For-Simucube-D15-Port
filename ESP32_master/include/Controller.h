@@ -2,7 +2,9 @@
 
 #include "Arduino.h"
 #include "Main.h"
-
+static const int16_t JOYSTICK_MIN_VALUE = 0;
+static const int16_t JOYSTICK_MAX_VALUE = 10000;
+static const int16_t JOYSTICK_RANGE = JOYSTICK_MAX_VALUE - JOYSTICK_MIN_VALUE;
 /*#ifdef CONFIG_IDF_TARGET_ESP32S2 ||ARDUINO_ESP32S3_DEV || CONFIG_IDF_TARGET_ESP32S3
   #define USB_JOYSTICK
 #elif CONFIG_IDF_TARGET_ESP32
@@ -20,4 +22,6 @@ int32_t NormalizeControllerOutputValue(float value, float minVal, float maxVal, 
 void SetControllerOutputValueBrake(int32_t value);
 void SetControllerOutputValueAccelerator(int32_t value);
 void SetControllerOutputValueThrottle(int32_t value);
+void SetControllerOutputValueRudder(int32_t value);
+void SetControllerOutputValueRudder_brake(int32_t value, int32_t value2);
 void joystickSendState();

@@ -842,6 +842,10 @@
                         <Label Content="Dump Pedal Resonse" Height="20" Width="130" Padding="0,0,0,0" VerticalContentAlignment="Center" FontFamily="Arial" HorizontalAlignment="Left" FontSize="10" Margin="4,0,0,0"/>
                     </StackPanel>
                     <StackPanel Height="20" Width="160" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5,4,0,0">
+                        <styles:SHToggleButton x:Name="CheckBox_Joystick_To_ESPmaster" Content="" Checked="CheckBox_Joystick_To_ESPmaster_Checked" Unchecked="CheckBox_Joystick_To_ESPmaster_Unchecked" IsChecked="False" FontSize="10" Width="35" Height="15" HorizontalAlignment="Left" FontFamily="Arial" ToolTip="Output Joystick value to ESPmaster reciever" RenderTransformOrigin="0.5,0.5" Margin="-10,0,0,0" />
+                        <Label Content="Joystick output to Reciever" Height="20" Width="130" Padding="0,0,0,0" VerticalContentAlignment="Center" FontFamily="Arial" HorizontalAlignment="Left" FontSize="10" Margin="4,0,0,0"/>
+                    </StackPanel>
+                    <StackPanel Height="20" Width="160" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5,4,0,0">
                         <styles:SHToggleButton x:Name="CheckBox_rudder" Content="" Checked="CheckBox_rudder_Checked" Unchecked="CheckBox_rudder_Unchecked" IsChecked="False" FontSize="10" Width="35" Height="15" HorizontalAlignment="Left" FontFamily="Arial" ToolTip="Combie Brk and Acc into 1 axis Rz, use as Rudder" RenderTransformOrigin="0.5,0.5" Margin="-10,0,0,0" />
                         <Label Content="Rudder" Height="20" Width="130" Padding="0,0,0,0" VerticalContentAlignment="Center" FontFamily="Arial" HorizontalAlignment="Left" FontSize="10" Margin="4,0,0,0"/>
                     </StackPanel>

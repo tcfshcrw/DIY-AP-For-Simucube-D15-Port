@@ -2,9 +2,7 @@
 //#include <string>
 #include "Controller.h"
 
-static const int16_t JOYSTICK_MIN_VALUE = 0;
-static const int16_t JOYSTICK_MAX_VALUE = 10000;
-static const int16_t JOYSTICK_RANGE = JOYSTICK_MAX_VALUE - JOYSTICK_MIN_VALUE;
+
 
 #define USB_JOYSTICK
 #ifdef USB_JOYSTICK
@@ -21,9 +19,9 @@ static const int16_t JOYSTICK_RANGE = JOYSTICK_MAX_VALUE - JOYSTICK_MIN_VALUE;
     Joystick.setRxAxisRange(JOYSTICK_MIN_VALUE, JOYSTICK_MAX_VALUE);
     Joystick.setRyAxisRange(JOYSTICK_MIN_VALUE, JOYSTICK_MAX_VALUE);
     Joystick.setRzAxisRange(JOYSTICK_MIN_VALUE, JOYSTICK_MAX_VALUE);
-    Joystick.setXAxisRange(JOYSTICK_MIN_VALUE, JOYSTICK_MAX_VALUE);
-    Joystick.setYAxisRange(JOYSTICK_MIN_VALUE, JOYSTICK_MAX_VALUE);
-    Joystick.setZAxisRange(JOYSTICK_MIN_VALUE, JOYSTICK_MAX_VALUE);
+    Joystick.setXAxisRange(JOYSTICK_MIN_VALUE, JOYSTICK_MAX_VALUE);//rudder
+    Joystick.setYAxisRange(JOYSTICK_MIN_VALUE, JOYSTICK_MAX_VALUE);//rudder brake brake
+    Joystick.setZAxisRange(JOYSTICK_MIN_VALUE, JOYSTICK_MAX_VALUE);//rudder brake throttle
     delay(100);
   
     Joystick.begin(false);
@@ -47,7 +45,13 @@ static const int16_t JOYSTICK_RANGE = JOYSTICK_MAX_VALUE - JOYSTICK_MIN_VALUE;
   void SetControllerOutputValueThrottle(int32_t value) {
     Joystick.setRzAxis(value);
   }
-
+  void SetControllerOutputValueRudder(int32_t value) {
+    Joystick.setXAxis(value);
+  }
+  void SetControllerOutputValueRudder_brake(int32_t value, int32_t value2) {
+    Joystick.setYAxis(value);
+    Joystick.setZAxis(value2);
+  }
   void joystickSendState()
   {
     Joystick.sendState();

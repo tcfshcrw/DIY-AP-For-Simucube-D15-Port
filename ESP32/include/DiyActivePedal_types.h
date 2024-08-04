@@ -3,7 +3,7 @@
 #include <stdint.h>
 
 // define the payload revision
-#define DAP_VERSION_CONFIG 138
+#define DAP_VERSION_CONFIG 139
 
 // define the payload types
 #define DAP_PAYLOAD_TYPE_CONFIG 100
@@ -176,6 +176,8 @@ struct payloadPedalConfig {
   uint8_t OTA_flag;
 
   uint8_t enableReboot_u8;
+  //joystick out flag
+  uint8_t Joystick_ESPsync_to_ESP;
   
 
 };

@@ -555,6 +555,7 @@ void setup()
     }
     if(dap_config_st.payLoadPedalConfig_.OTA_flag==1)
     {
+      
       ota_wifi_initialize(APhost);
       xTaskCreatePinnedToCore(
                     OTATask,   
@@ -648,17 +649,21 @@ void setup()
   
   if(dap_config_st.payLoadPedalConfig_.OTA_flag==0)
   {
-    ESPNow_initialize();
-    xTaskCreatePinnedToCore(
-                      ESPNOW_SyncTask,   
-                      "ESPNOW_update_Task", 
-                      3000,  
-                      //STACK_SIZE_FOR_TASK_2,    
-                      NULL,      
-                      1,         
-                      &Task6,    
-                      0);     
-    delay(500);
+    if(dap_config_st.payLoadPedalConfig_.pedal_type==1||dap_config_st.payLoadPedalConfig_.pedal_type==2||dap_config_st.payLoadPedalConfig_.pedal_type==3)
+    {
+      ESPNow_initialize();
+      xTaskCreatePinnedToCore(
+                        ESPNOW_SyncTask,   
+                        "ESPNOW_update_Task", 
+                        3000,  
+                        //STACK_SIZE_FOR_TASK_2,    
+                        NULL,      
+                        1,         
+                        &Task6,    
+                        0);     
+      delay(500);
+    }
+    
       
     
 }
@@ -1200,7 +1205,7 @@ void pedalUpdateTask( void * pvParameters )
       }
     }
 
-
+    
 
     // update pedal states
     if(semaphore_updatePedalStates!=NULL)
@@ -1579,18 +1584,19 @@ void serialCommunicationTask( void * pvParameters )
     // transmit controller output
     //Serial.print("Joy 1");
     delay( SERIAL_COOMUNICATION_TASK_DELAY_IN_MS );
+          //Serial.print(" 2");
+    if(semaphore_updateJoystick!=NULL)
+    {
+      if(xSemaphoreTake(semaphore_updateJoystick, (TickType_t)1)==pdTRUE)
+      {
+         //Serial.print(" 3");
+        joystickNormalizedToInt32_local = joystickNormalizedToInt32;
+        xSemaphoreGive(semaphore_updateJoystick);
+      }
+    }
     if (IsControllerReady()) 
     {
-      //Serial.print(" 2");
-      if(semaphore_updateJoystick!=NULL)
-      {
-        if(xSemaphoreTake(semaphore_updateJoystick, (TickType_t)1)==pdTRUE)
-        {
-          //Serial.print(" 3");
-          joystickNormalizedToInt32_local = joystickNormalizedToInt32;
-          xSemaphoreGive(semaphore_updateJoystick);
-        }
-      }
+
       //Serial.print(" 4");
       //Serial.print("\r\n");
       if(dap_calculationVariables_st.Rudder_status)
@@ -1803,10 +1809,14 @@ void ESPNOW_SyncTask( void * pvParameters )
 {
   for(;;)
   {
-      if(ESPNOW_count>20)
+      if(ESPNOW_count>10)
       {
         //send the data to master
-        sendMessageToMaster(joystickNormalizedToInt32);
+        if(dap_config_st.payLoadPedalConfig_.Joystick_ESPsync_to_ESP==1)
+        {
+          sendMessageToMaster(joystickNormalizedToInt32);
+        }
+        
         //rudder sync
         if(dap_calculationVariables_st.Rudder_status)
         {
@@ -1833,9 +1843,10 @@ void ESPNOW_SyncTask( void * pvParameters )
               dap_calculationVariables_st.Sync_pedal_position_ratio=_ESPNow_Recv.pedal_position_ratio;
               ESPNow_update=false;
             }
-            ESPNOW_count=0;
+            
           }
         }
+        ESPNOW_count=0;
       } 
       else
       {

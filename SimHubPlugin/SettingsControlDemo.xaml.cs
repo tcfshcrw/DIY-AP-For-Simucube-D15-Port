@@ -474,6 +474,7 @@ namespace User.PluginSdkDemo
             dap_config_st[pedalIdx].payloadPedalConfig_.pedal_type = (byte)pedalIdx;
             dap_config_st[pedalIdx].payloadPedalConfig_.OTA_flag = 0;
             dap_config_st[pedalIdx].payloadPedalConfig_.enableReboot_u8 = 0;
+            dap_config_st[pedalIdx].payloadPedalConfig_.Joystick_Master_flag_u8 = 0;
         }
 
 
@@ -1399,6 +1400,15 @@ namespace User.PluginSdkDemo
                 OTA_update_check.IsChecked = false;
             }
 
+            if (dap_config_st[indexOfSelectedPedal_u].payloadPedalConfig_.Joystick_Master_flag_u8 == 1)
+            {
+                CheckBox_Joystick_To_ESPmaster.IsChecked = true;
+            }
+            else
+            {
+                CheckBox_Joystick_To_ESPmaster.IsChecked = false;
+            }
+
             if (dap_config_st[indexOfSelectedPedal_u].payloadPedalConfig_.enableReboot_u8 == 1)
             {
                 EnableReboot_check.IsChecked = true;
@@ -1436,6 +1446,7 @@ namespace User.PluginSdkDemo
             {
                 checkbox_auto_connect.IsChecked= false;
             }
+            
 
             textBox_wheelslip_effect_string.Text = Plugin.Settings.WSeffect_bind;
             textBox_impact_effect_string.Text = Plugin.Settings.Road_impact_bind;
@@ -5497,6 +5508,16 @@ namespace User.PluginSdkDemo
         {
             dap_config_st[indexOfSelectedPedal_u].payloadPedalConfig_.CV_freq_2 = (Byte)e.NewValue;
             label_CV2_freq.Content = "Effect Frequency:" + dap_config_st[indexOfSelectedPedal_u].payloadPedalConfig_.CV_freq_2 + "Hz";
+        }
+
+        private void CheckBox_Joystick_To_ESPmaster_Checked(object sender, RoutedEventArgs e)
+        {
+            dap_config_st[indexOfSelectedPedal_u].payloadPedalConfig_.Joystick_Master_flag_u8 = 1;
+        }
+
+        private void CheckBox_Joystick_To_ESPmaster_Unchecked(object sender, RoutedEventArgs e)
+        {
+            dap_config_st[indexOfSelectedPedal_u].payloadPedalConfig_.Joystick_Master_flag_u8 = 0;
         }
     }
     

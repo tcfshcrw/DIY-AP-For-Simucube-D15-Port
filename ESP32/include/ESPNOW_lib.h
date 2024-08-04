@@ -25,9 +25,10 @@ struct ESPNow_Send_Struct
 };
 
 typedef struct struct_message {
-    uint64_t cycleCnt_u64;
-    int64_t timeSinceBoot_i64;
+  uint64_t cycleCnt_u64;
+  int64_t timeSinceBoot_i64;
 	int32_t controllerValue_i32;
+  int8_t pedal_status; //0=default, 1=rudder, 2=rudder brake
 } struct_message;
 
 // Create a struct_message called myData
@@ -41,7 +42,21 @@ void sendMessageToMaster(int32_t controllerValue)
   myData.cycleCnt_u64++;
   myData.timeSinceBoot_i64 = esp_timer_get_time() / 1000;
   myData.controllerValue_i32 = controllerValue;
-
+  if(dap_calculationVariables_st.Rudder_status)
+  {
+    if(dap_calculationVariables_st.rudder_brake_status)
+    {
+      myData.pedal_status=2;
+    }
+    else
+    {
+      myData.pedal_status=1;
+    }
+  }
+  else
+  {
+    myData.pedal_status=0;
+  }
   // Send message via ESP-NOW
   esp_err_t result = esp_now_send(esp_master, (uint8_t *) &myData, sizeof(myData));
   if (result != ESP_OK) {

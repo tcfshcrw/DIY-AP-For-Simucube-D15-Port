@@ -67,12 +67,14 @@ uint16_t pedal_brake_value=0;
 uint16_t pedal_cluth_value=0;
 uint16_t pedal_brake_rudder_value=0;
 uint16_t pedal_throttle_rudder_value=0;
+uint8_t pedal_status=0;
 bool joystick_update=false;
 
 typedef struct struct_message {
     uint64_t cycleCnt_u64;
     int64_t timeSinceBoot_i64;
 	int32_t controllerValue_i32;
+	int8_t pedal_status; //0=default, 1=rudder, 2=rudder brake
 } struct_message;
 
 // Create a struct_message called myData
@@ -83,7 +85,7 @@ void OnDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
 
 //void OnDataRecv(const esp_now_recv_info *info, const uint8_t *incomingData, int len) {
 	memcpy(&myData, incomingData, sizeof(myData));
-	
+	pedal_status=myData.pedal_status;
 	#ifdef ACTIVATE_JOYSTICK_OUTPUT
 	// normalize controller output
 	int32_t joystickNormalizedToInt32 = NormalizeControllerOutputValue(myData.controllerValue_i32, 0, 10000, 100); 
@@ -280,9 +282,45 @@ void loop() {
 	
 	if(IsControllerReady())
 	{
-		SetControllerOutputValueAccelerator(pedal_cluth_value);
-		SetControllerOutputValueBrake(pedal_brake_value);
-		SetControllerOutputValueThrottle(pedal_throttle_value);
+		if(pedal_status==0)
+		{
+			SetControllerOutputValueAccelerator(pedal_cluth_value);
+			SetControllerOutputValueBrake(pedal_brake_value);
+			SetControllerOutputValueThrottle(pedal_throttle_value);
+			SetControllerOutputValueRudder(0);
+			SetControllerOutputValueRudder_brake(0,0);
+		}
+		if (pedal_status==1)
+		{
+			SetControllerOutputValueAccelerator(0);
+			SetControllerOutputValueBrake(0);
+			SetControllerOutputValueThrottle(0);
+			//3% deadzone
+			if(pedal_brake_value<((int16_t)(0.47*JOYSTICK_RANGE))||pedal_brake_value>((int16_t)(0.53*JOYSTICK_RANGE)))
+			{
+				SetControllerOutputValueRudder(pedal_brake_value);
+			}
+			else
+			{
+				SetControllerOutputValueRudder((int16_t)(0.5*JOYSTICK_RANGE));
+			}
+			SetControllerOutputValueRudder_brake(0,0);
+			
+		}
+		if (pedal_status==2)
+		{
+			SetControllerOutputValueAccelerator(0);
+			SetControllerOutputValueBrake(0);
+			SetControllerOutputValueThrottle(0);
+			SetControllerOutputValueRudder((int16_t)(0.5*JOYSTICK_RANGE));
+			//int16_t filter_brake=0;
+			//int16_t filter_throttle=0;
+			
+			SetControllerOutputValueRudder_brake(pedal_brake_value,pedal_throttle_value);
+			
+		}
+		
+
 		joystickSendState();
 	}
 		

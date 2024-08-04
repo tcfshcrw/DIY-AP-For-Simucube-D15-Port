@@ -24,7 +24,7 @@ using static System.Net.Mime.MediaTypeNames;
 static class Constants
 {
     // payload revisiom
-    public const uint pedalConfigPayload_version = 138;
+    public const uint pedalConfigPayload_version = 139;
 
 
     // pyload types
@@ -209,6 +209,8 @@ public struct payloadPedalConfig
     // OTA update flag
     public byte enableReboot_u8;
 
+    //
+    public byte Joystick_Master_flag_u8;
 }
 
 public struct payloadFooter
