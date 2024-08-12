@@ -122,6 +122,9 @@ void onRecv(const uint8_t *mac_addr, const uint8_t *data, int data_len)
     
     if(data_len==sizeof(dap_config_st))
     {
+
+            
+      Serial.println("dap_config_st ESPNow recieved");
       if(semaphore_updateConfig!=NULL)
       {
         if(xSemaphoreTake(semaphore_updateConfig, (TickType_t)1)==pdTRUE)
@@ -130,9 +133,15 @@ void onRecv(const uint8_t *mac_addr, const uint8_t *data, int data_len)
           uint16_t crc;
           DAP_config_st * dap_config_st_local_ptr;
           dap_config_st_local_ptr = &dap_config_st_local;
-          Serial.readBytes((char*)dap_config_st_local_ptr, sizeof(DAP_config_st));
-
-                  
+          //Serial.readBytes((char*)dap_config_st_local_ptr, sizeof(DAP_config_st));
+          memcpy(dap_config_st_local_ptr, data, sizeof(DAP_config_st));
+          //debug
+          Serial.print("Config version expected: ");
+          Serial.print(DAP_VERSION_CONFIG);
+          Serial.print(",   Config version received: ");
+          Serial.println(dap_config_st_local.payLoadHeader_.version);
+          Serial.print("minimun position: ");
+          Serial.println(dap_config_st_local.payLoadPedalConfig_.pedalStartPosition);      
 
           // check if data is plausible
                   

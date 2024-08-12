@@ -419,6 +419,8 @@ delay(5);
     {
       case sizeof(DAP_actions_st) :            
         Serial.readBytes((char*)&dap_actions_st, sizeof(DAP_actions_st));
+        
+
         if ( dap_actions_st.payLoadHeader_.payloadType != DAP_PAYLOAD_TYPE_ACTION )
         { 
           structChecker = false;
@@ -465,16 +467,22 @@ delay(5);
 
       case sizeof(DAP_config_st):
               
-
-
         DAP_config_st * dap_config_st_local_ptr;
         dap_config_st_local_ptr = &dap_config_st;
         Serial.readBytes((char*)dap_config_st_local_ptr, sizeof(DAP_config_st));
-            
-                  
-
-            // check if data is plausible
-                  
+        /*
+        Serial.print("Bridge Payload type expected: ");
+        Serial.print(DAP_PAYLOAD_TYPE_ACTION);
+        Serial.print(",Bridge Payload type received: ");
+        Serial.println(dap_config_st.payLoadHeader_.payloadType);
+        Serial.print("Bridge Config version expected: ");
+        Serial.print(DAP_VERSION_CONFIG);
+        Serial.print(",Bridge Config version received: ");
+        Serial.println(dap_config_st.payLoadHeader_.version);
+        Serial.print("Bridge Minimun position: ");
+        Serial.println(dap_config_st.payLoadPedalConfig_.pedalStartPosition);  
+        */                     
+        // check if data is plausible          
         if ( dap_config_st.payLoadHeader_.payloadType != DAP_PAYLOAD_TYPE_CONFIG )
         { 
           structChecker = false;
@@ -506,7 +514,7 @@ delay(5);
             // if checks are successfull, overwrite global configuration struct
             if (structChecker == true)
             {
-              Serial.println("Updating pedal config");
+              //Serial.println("Updating pedal config");
               configUpdateAvailable = true;     
               //memcpy(&dap_config_st, &dap_config_st_local, sizeof(dap_config_st));     
             }
@@ -532,6 +540,12 @@ delay(5);
 
   if(configUpdateAvailable)
   {
+    if(dap_config_st.payLoadHeader_.PedalTag==0)
+    {
+      ESPNow.send_message(Clu_mac,(uint8_t *) &dap_config_st,sizeof(dap_config_st));
+      Serial.println("Clutch config sent");
+      configUpdateAvailable=false;
+    }
     if(dap_config_st.payLoadHeader_.PedalTag==1)
     {
       ESPNow.send_message(Brk_mac,(uint8_t *) &dap_config_st,sizeof(dap_config_st));
@@ -551,6 +565,11 @@ delay(5);
   if(dap_action_update)
   {
     
+    if(dap_actions_st.payLoadHeader_.PedalTag==0)
+    {
+      ESPNow.send_message(Clu_mac,(uint8_t *) &dap_actions_st,sizeof(dap_actions_st));
+      //Serial.println("BRK sent");
+    }
     if(dap_actions_st.payLoadHeader_.PedalTag==1)
     {
       ESPNow.send_message(Brk_mac,(uint8_t *) &dap_actions_st,sizeof(dap_actions_st));
@@ -578,7 +597,7 @@ delay(5);
     loop_count++;
   }
   */
-  delay(1);
+  delay(2);
   
 }
 

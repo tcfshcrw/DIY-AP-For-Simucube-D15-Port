@@ -2085,6 +2085,7 @@ namespace User.PluginSdkDemo
                 {
                     try
                     {
+                        TextBox2.Text = "Buffer sent size:" + length;
                         Plugin.ESPsync_serialPort.DiscardInBuffer();
                         Plugin.ESPsync_serialPort.DiscardOutBuffer();
                         // send data
