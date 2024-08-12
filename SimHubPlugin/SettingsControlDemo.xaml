@@ -1666,14 +1666,20 @@
                         </StackPanel>
                     </Border>
                 </TabItem>
-                <TabItem Width="90" Height="30" Padding="0,0,0,0" Visibility="Hidden">
+                <TabItem Width="90" Height="30" Padding="0,0,0,0">
                     <TabItem.Header>
                         <Border  Width="90" Height="30" Margin="0,0,0,0" >
-                            <Label Content="Custom-3"  FontFamily="Arial Black" FontSize="12" Height="30" Width="90" Padding="0,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Left" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" ToolTip="Parameter of the ABS/TC effect "  />
+                            <Label Content="ESPNow"  FontFamily="Arial Black" FontSize="12" Height="30" Width="90" Padding="0,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Left" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" ToolTip="Parameter of the ABS/TC effect "  />
                         </Border>
                     </TabItem.Header>
                     <Border Background="#7F4E4E4E" CornerRadius="5,5,5,5" Height="240" BorderThickness="0,2,0,0" >
-                        <StackPanel HorizontalAlignment="Left" Height="240" VerticalAlignment="Top" Width="540">
+                        <StackPanel HorizontalAlignment="Left" Height="240" VerticalAlignment="Top" Width="360">
+                            <ComboBox x:Name="SerialPortSelection_ESPNow" SelectionChanged="ESPNow_SerialPortSelectionChanged" Width="135" ItemsSource="{Binding}" DisplayMemberPath="Display" SelectedValuePath="Value" FontSize="10" Height="30"/>
+                            <styles:SHButtonPrimary x:Name="btn_connect_espnow_port" Click="btn_connect_espnow_port_Click" Width="50" Content="Connect" Height="20" Margin="0,0,0,0" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="0,0,0,0" VerticalContentAlignment="Center" FontFamily="Arial" FontSize="10" MinHeight="20" />
+                            <StackPanel Height="20" Width="360" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5,4,0,0">
+                                <styles:SHToggleButton x:Name="CheckBox_Pedal_ESPNow_SyncFlag" Content="" Checked="CheckBox_Pedal_ESPNow_SyncFlag_Checked" Unchecked="CheckBox_Pedal_ESPNow_SyncFlag_Unchecked" IsChecked="False" FontSize="10" Width="35" Height="15" HorizontalAlignment="Left" FontFamily="Arial" ToolTip="The option is for S3" RenderTransformOrigin="0.5,0.5" Margin="-10,0,0,0" />
+                                <Label Content="ESPNow Sync" Height="20" Width="130" Padding="0,0,0,0" VerticalContentAlignment="Center" FontFamily="Arial" HorizontalAlignment="Left" FontSize="10" Margin="4,0,0,0"/>
+                            </StackPanel>
                         </StackPanel>
                     </Border>
                 </TabItem>
