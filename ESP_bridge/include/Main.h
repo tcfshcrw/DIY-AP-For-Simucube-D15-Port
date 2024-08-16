@@ -133,7 +133,8 @@
   #define dirPinStepper    22
   #define stepPinStepper   23
   //analog output pin
-  #define D_O 25 
+  #define Analog_brk 25 
+  #define Analog_gas 26
   //I2Cpins
   #define I2C_SDA 32
   #define I2C_SCL 33
@@ -142,10 +143,6 @@
   #define minPin 12
   #define maxPin 13
 
-  // level shifter is present on this PCB design
-  #define SENSORLESS_HOMING true
-  #define ISV57_TXPIN 27 //17
-  #define ISV57_RXPIN 26 // 16
 
   #define Using_analog_output
   //#define Using_I2C_Sync

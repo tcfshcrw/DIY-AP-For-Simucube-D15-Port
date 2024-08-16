@@ -501,8 +501,8 @@ namespace User.PluginSdkDemo
             //InvertMotorDir_check.Visibility = Visibility.Hidden;
             textBox_debug_Flag_0.Visibility = Visibility.Hidden;
             Border_serial_monitor.Visibility=Visibility.Hidden;
-            debug_border.Visibility=Visibility.Hidden;
-            debug_label_text.Visibility=Visibility.Hidden;
+            Advanced_Tab.Visibility=Visibility.Hidden;
+           
             //btn_serial.Visibility = System.Windows.Visibility.Hidden;
             button_pedal_position_reset.Visibility = System.Windows.Visibility.Hidden;
             button_pedal_restart.Visibility = System.Windows.Visibility.Hidden;
@@ -929,6 +929,13 @@ namespace User.PluginSdkDemo
                         info_text = "Waiting...";
                     }
                 }
+                if (Plugin.ESPsync_serialPort.IsOpen)
+                {
+                    if (Plugin.Settings.Pedal_ESPNow_Sync_flag[indexOfSelectedPedal_u])
+                    {
+                        info_text = "Wireless Sync";
+                    }
+                }
                 info_text += "\n" + Constants.pedalConfigPayload_version+"\n"+plugin_version;
                 if (Plugin.Rudder_status)
                 {
@@ -1098,6 +1105,24 @@ namespace User.PluginSdkDemo
                 else
                 {
                     CheckBox_Pedal_ESPNow_SyncFlag.IsChecked = false;
+                }
+
+                if (Plugin.Settings.Pedal_ESPNow_auto_connect_flag)
+                {
+                    CheckBox_Pedal_ESPNow_autoconnect.IsChecked = true;
+                }
+                else
+                { 
+                    CheckBox_Pedal_ESPNow_autoconnect.IsChecked= false;
+                }
+
+                if (Plugin.Settings.Serial_auto_clean)
+                {
+                    Checkbox_auto_remove_serial_line.IsChecked = true;
+                }
+                else
+                { 
+                    Checkbox_auto_remove_serial_line.IsChecked= false;
                 }
                 
             }
@@ -1421,16 +1446,6 @@ namespace User.PluginSdkDemo
             {
                 checkbox_enable_wheelslip.IsChecked = false;
             }
-
-            if (dap_config_st[indexOfSelectedPedal_u].payloadPedalConfig_.OTA_flag == 1)
-            {
-                OTA_update_check.IsChecked = true;
-            }
-            else
-            { 
-                OTA_update_check.IsChecked = false;
-            }
-
             if (dap_config_st[indexOfSelectedPedal_u].payloadPedalConfig_.enableReboot_u8 == 1)
             {
                 EnableReboot_check.IsChecked = true;
@@ -1941,7 +1956,8 @@ namespace User.PluginSdkDemo
                     DAP_action_st tmp;
                     tmp.payloadHeader_.version = (byte)Constants.pedalConfigPayload_version;
                     tmp.payloadHeader_.payloadType = (byte)Constants.pedalActionPayload_type;
-                    tmp.payloadPedalAction_.resetPedalPos_u8 = 1;
+                    tmp.payloadHeader_.PedalTag = (byte)indexOfSelectedPedal_u;
+                    tmp.payloadPedalAction_.system_action_u8 = 1;
 
 
                     DAP_action_st* v = &tmp;
@@ -2079,7 +2095,7 @@ namespace User.PluginSdkDemo
             //TextBox_debugOutput.Text = "CRC simhub calc: " + this.dap_config_st[indexOfSelectedPedal_u].payloadFooter_.checkSum + "    ";
 
             TextBox_debugOutput.Text = String.Empty;
-            if (Plugin.Sync_esp_connection_flag)
+            if (Plugin.Settings.Pedal_ESPNow_Sync_flag[pedalIdx])
             {
                 if (Plugin.ESPsync_serialPort.IsOpen)
                 {
@@ -2091,6 +2107,7 @@ namespace User.PluginSdkDemo
                         // send data
                         Plugin.ESPsync_serialPort.Write(newBuffer, 0, newBuffer.Length);
                         //Plugin._serialPort[indexOfSelectedPedal_u].Write("\n");
+                        System.Threading.Thread.Sleep(100);
                     }
                     catch (Exception caughtEx)
                     {
@@ -2194,43 +2211,61 @@ namespace User.PluginSdkDemo
 
         unsafe public void Reading_config_auto(uint i)
         {
-            if (Plugin._serialPort[i].IsOpen)
+            // compute checksum
+            DAP_action_st tmp;
+            tmp.payloadPedalAction_.returnPedalConfig_u8 = 1;
+            tmp.payloadHeader_.version = (byte)Constants.pedalConfigPayload_version;
+            tmp.payloadHeader_.payloadType = (byte)Constants.pedalActionPayload_type;
+            tmp.payloadHeader_.PedalTag = (byte)i;
+            DAP_action_st* v = &tmp;
+            byte* p = (byte*)v;
+            tmp.payloadFooter_.checkSum = Plugin.checksumCalc(p, sizeof(payloadHeader) + sizeof(payloadPedalAction));
+            int length = sizeof(DAP_action_st);
+            byte[] newBuffer = new byte[length];
+            newBuffer = Plugin.getBytes_Action(tmp);
+            // tell the plugin that we expect config data
+            waiting_for_pedal_config[i] = true;
+            if (Plugin.Settings.Pedal_ESPNow_Sync_flag[i])
             {
-                // compute checksum
-                DAP_action_st tmp;
-                tmp.payloadPedalAction_.returnPedalConfig_u8 = 1;
-                tmp.payloadHeader_.version = (byte)Constants.pedalConfigPayload_version;
-                tmp.payloadHeader_.payloadType = (byte)Constants.pedalActionPayload_type;
-
-                DAP_action_st* v = &tmp;
-                byte* p = (byte*)v;
-                tmp.payloadFooter_.checkSum = Plugin.checksumCalc(p, sizeof(payloadHeader) + sizeof(payloadPedalAction));
-
-
-                int length = sizeof(DAP_action_st);
-                byte[] newBuffer = new byte[length];
-                newBuffer = Plugin.getBytes_Action(tmp);
-
-
-                // tell the plugin that we expect config data
-                waiting_for_pedal_config[i] = true;
-
-
-                // try N times and check whether config has been received
-                for (int rep = 0; rep < 1; rep++)
+                if (Plugin.ESPsync_serialPort.IsOpen)
                 {
-                    // send query command
-                    Plugin._serialPort[i].Write(newBuffer, 0, newBuffer.Length);
-
-                    // wait some time and check whether data has been received
-                    System.Threading.Thread.Sleep(50);
-
-                    if (waiting_for_pedal_config[i] == false)
+                    // try N times and check whether config has been received
+                    for (int rep = 0; rep < 1; rep++)
                     {
-                        break;
+                        // send query command
+                        Plugin.ESPsync_serialPort.Write(newBuffer, 0, newBuffer.Length);
+
+                        // wait some time and check whether data has been received
+                        System.Threading.Thread.Sleep(50);
+
+                        if (waiting_for_pedal_config[i] == false)
+                        {
+                            break;
+                        }
                     }
                 }
             }
+            else
+            {
+                if (Plugin._serialPort[i].IsOpen)
+                {
+                    // try N times and check whether config has been received
+                    for (int rep = 0; rep < 1; rep++)
+                    {
+                        // send query command
+                        Plugin._serialPort[i].Write(newBuffer, 0, newBuffer.Length);
+
+                        // wait some time and check whether data has been received
+                        System.Threading.Thread.Sleep(50);
+
+                        if (waiting_for_pedal_config[i] == false)
+                        {
+                            break;
+                        }
+                    }
+                }
+            }
+
         }
 
         public string[] STOPCHAR = { "\r\n" };
@@ -2560,7 +2595,68 @@ namespace User.PluginSdkDemo
             count_timmer_count++;
             if (count_timmer_count > 1)
             {
-
+                if (Plugin.Settings.Pedal_ESPNow_auto_connect_flag)
+                {
+                    if (Plugin.PortExists(Plugin.Settings.ESPNow_port))
+                    {
+                        if (Plugin.ESPsync_serialPort.IsOpen == false)
+                        {
+                            Plugin.ESPsync_serialPort.PortName = Plugin.Settings.ESPNow_port;
+                            try
+                            {
+                                // serial port settings
+                                Plugin.ESPsync_serialPort.Handshake = Handshake.None;
+                                Plugin.ESPsync_serialPort.Parity = Parity.None;
+                                //_serialPort[pedalIdx].StopBits = StopBits.None;
+                                Plugin.ESPsync_serialPort.ReadTimeout = 2000;
+                                Plugin.ESPsync_serialPort.WriteTimeout = 500;
+                                // https://stackoverflow.com/questions/7178655/serialport-encoding-how-do-i-get-8-bit-ascii
+                                Plugin.ESPsync_serialPort.Encoding = System.Text.Encoding.GetEncoding(28591);
+                                Plugin.ESPsync_serialPort.NewLine = "\r\n";
+                                Plugin.ESPsync_serialPort.ReadBufferSize = 10000;
+                                try
+                                {
+                                    Plugin.ESPsync_serialPort.Open();
+                                    System.Threading.Thread.Sleep(200);
+                                    // ESP32 S3
+                                    Plugin.ESPsync_serialPort.RtsEnable = false;
+                                    Plugin.ESPsync_serialPort.DtrEnable = true;
+                                    //SystemSounds.Beep.Play();
+                                    Plugin.Sync_esp_connection_flag = true;
+                                    btn_connect_espnow_port.Content = "Disconnect";
+                                    ESP_host_serial_timer = new System.Windows.Forms.Timer();
+                                    ESP_host_serial_timer.Tick += new EventHandler(timerCallback_serial_esphost);
+                                    ESP_host_serial_timer.Tag = 3;
+                                    ESP_host_serial_timer.Interval = 16; // in miliseconds
+                                    ESP_host_serial_timer.Start();
+                                    System.Threading.Thread.Sleep(100);
+                                    ToastNotification("Pedal Bridge", "Connected");
+                                }
+                                catch (Exception ex)
+                                {
+                                    TextBox2.Text = ex.Message;
+                                    //Serial_connect_status[3] = false;
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                TextBox2.Text = ex.Message;
+                            }
+                        }
+                    }
+                    else
+                    {  
+                        Plugin.Sync_esp_connection_flag = false;
+                        btn_connect_espnow_port.Content = "Connect";
+                        if (ESP_host_serial_timer != null)
+                        {
+                            ESP_host_serial_timer.Stop();
+                            ESP_host_serial_timer.Dispose();
+                        }
+                            
+                    }
+                                            
+                }
 
                 for (uint pedalIdx = 0; pedalIdx < 3; pedalIdx++)
                 {
@@ -2814,8 +2910,14 @@ namespace User.PluginSdkDemo
 
                 if (sp.IsOpen)
                 {
+                    if (Plugin.Settings.Serial_auto_clean)
+                    {
+                        if (TextBox_serialMonitor.LineCount > 300)
+                        {
+                            TextBox_serialMonitor.Clear();
+                        }
+                    }
 
-                
                     int receivedLength = 0;
                     try 
                     {
@@ -3031,7 +3133,7 @@ namespace User.PluginSdkDemo
 
                                         if (debug_flag)
                                         {
-                                            Canvas.SetLeft(rect_State, dxx * pedalState_read_st.payloadPedalBasicState_.pedalPosition_u16 - rect_State.Width / 2);
+                                            Canvas.SetLeft(rect_State, dxx * pedalState_read_st.payloadPedalBasicState_.pedalPosition_u16 - rect_State.Width / 2 );
                                             Canvas.SetTop(rect_State, canvas.Height - dyy * pedalState_read_st.payloadPedalBasicState_.pedalForce_u16 - rect_State.Height / 2);
 
                                             Canvas.SetLeft(text_state, Canvas.GetLeft(rect_State) /*+ rect_State.Width*/);
@@ -3045,7 +3147,7 @@ namespace User.PluginSdkDemo
                                         }
                                         else
                                         {
-                                            Canvas.SetLeft(rect_State, dxx * pedalState_read_st.payloadPedalBasicState_.pedalPosition_u16 - rect_State.Width / 2);
+                                            Canvas.SetLeft(rect_State, dxx * pedalState_read_st.payloadPedalBasicState_.pedalPosition_u16 - rect_State.Width / 2 );
                                             int round_x = (int)(100 * pedalState_read_st.payloadPedalBasicState_.pedalPosition_u16 / control_rect_value_max) - 1;
                                             int x_showed = round_x + 1;
                                             round_x = Math.Max(0, Math.Min(round_x, 99));
@@ -3480,13 +3582,46 @@ namespace User.PluginSdkDemo
 
 
 
-        private void RestartPedal_click(object sender, RoutedEventArgs e)
+        unsafe private void RestartPedal_click(object sender, RoutedEventArgs e)
         {
             Plugin._serialPort[indexOfSelectedPedal_u].DtrEnable = true;
             Plugin._serialPort[indexOfSelectedPedal_u].RtsEnable = true;
             System.Threading.Thread.Sleep(100);
             Plugin._serialPort[indexOfSelectedPedal_u].DtrEnable = false;
             Plugin._serialPort[indexOfSelectedPedal_u].RtsEnable = false;
+            if (Plugin.Settings.Pedal_ESPNow_Sync_flag[indexOfSelectedPedal_u])
+            {
+                if (Plugin.ESPsync_serialPort.IsOpen)
+                {
+                    try
+                    {
+                        // compute checksum
+                        DAP_action_st tmp;
+                        tmp.payloadHeader_.version = (byte)Constants.pedalConfigPayload_version;
+                        tmp.payloadHeader_.payloadType = (byte)Constants.pedalActionPayload_type;
+                        tmp.payloadHeader_.PedalTag = (byte)indexOfSelectedPedal_u;
+                        tmp.payloadPedalAction_.system_action_u8 = 2; //1=reset pedal position, 2 =restart esp.
+
+                        DAP_action_st* v = &tmp;
+                        byte* p = (byte*)v;
+                        tmp.payloadFooter_.checkSum = Plugin.checksumCalc(p, sizeof(payloadHeader) + sizeof(payloadPedalAction));
+                        int length = sizeof(DAP_action_st);
+                        byte[] newBuffer = new byte[length];
+                        newBuffer = Plugin.getBytes_Action(tmp);
+                        // clear inbuffer 
+                        Plugin.ESPsync_serialPort.DiscardInBuffer();
+
+                        // send query command
+                        Plugin.ESPsync_serialPort.Write(newBuffer, 0, newBuffer.Length);
+                    }
+                    catch (Exception caughtEx)
+                    {
+                        string errorMessage = caughtEx.Message;
+                        TextBox_debugOutput.Text = errorMessage;
+                    }
+                }
+            }
+            
         }
 
         public void Read_for_slot(object sender, EventArgs e)
@@ -4081,8 +4216,8 @@ namespace User.PluginSdkDemo
             //text_state.Visibility = Visibility.Hidden;
             debug_flag = true;
             Border_serial_monitor.Visibility = Visibility.Visible;
-            debug_border.Visibility = Visibility.Visible;
-            debug_label_text.Visibility = Visibility.Visible;
+            Advanced_Tab.Visibility = Visibility.Visible;
+            
            // Label_reverse_LC.Visibility = Visibility.Visible;
             //Label_reverse_servo.Visibility = Visibility.Visible;
             btn_test.Visibility = Visibility.Visible;
@@ -4108,8 +4243,8 @@ namespace User.PluginSdkDemo
             //text_state.Visibility = Visibility.Visible;
             debug_flag = false;
             Border_serial_monitor.Visibility = Visibility.Hidden;
-            debug_border.Visibility = Visibility.Hidden;
-            debug_label_text.Visibility = Visibility.Hidden;
+            Advanced_Tab.Visibility = Visibility.Hidden;
+            
             //Label_reverse_LC.Visibility = Visibility.Hidden;
             //Label_reverse_servo.Visibility = Visibility.Hidden;
             btn_test.Visibility = Visibility.Hidden;
@@ -5634,6 +5769,8 @@ namespace User.PluginSdkDemo
                     Plugin.Sync_esp_connection_flag = false;
                     btn_connect_espnow_port.Content = "Connect";
                     SystemSounds.Beep.Play();
+                    Plugin.Settings.Pedal_ESPNow_auto_connect_flag = false;
+                    updateTheGuiFromConfig();
                 }
             }
             else
@@ -5658,12 +5795,7 @@ namespace User.PluginSdkDemo
                         try
                         {
                             Plugin.ESPsync_serialPort.Open();
-
-
-
-
                             System.Threading.Thread.Sleep(200);
-
                             // ESP32 S3
                             Plugin.ESPsync_serialPort.RtsEnable = false;
                             Plugin.ESPsync_serialPort.DtrEnable = true;
@@ -5685,6 +5817,10 @@ namespace User.PluginSdkDemo
                             ESP_host_serial_timer.Interval = 16; // in miliseconds
                             ESP_host_serial_timer.Start();
                             System.Threading.Thread.Sleep(100);
+                            if (Plugin.Settings.Pedal_ESPNow_auto_connect_flag)
+                            {
+                                Plugin.Settings.ESPNow_port = Plugin.ESPsync_serialPort.PortName;
+                            }
                             
                             
                         }
@@ -5775,6 +5911,13 @@ namespace User.PluginSdkDemo
                 if (sp.IsOpen)
                 {
 
+                    if (Plugin.Settings.Serial_auto_clean)
+                    {
+                        if (TextBox_serialMonitor.LineCount > 100)
+                        {
+                            TextBox_serialMonitor.Clear();
+                        }
+                    }
 
                     int receivedLength = 0;
                     try
@@ -5885,18 +6028,18 @@ namespace User.PluginSdkDemo
 
                                 // parse byte array as config struct
                                 DAP_state_basic_st pedalState_read_st = getStateFromBytes(destinationArray);
-
+                                
                                 // check whether receive struct is plausible
                                 DAP_state_basic_st* v_state = &pedalState_read_st;
                                 byte* p_state = (byte*)v_state;
-
+                                UInt16 pedalSelected= pedalState_read_st.payloadHeader_.PedalTag;
                                 // payload type check
                                 bool check_payload_state_b = false;
                                 if (pedalState_read_st.payloadHeader_.payloadType == Constants.pedalStateBasicPayload_type)
                                 {
                                     check_payload_state_b = true;
                                 }
-
+                                
                                 // CRC check
                                 bool check_crc_state_b = false;
                                 if (Plugin.checksumCalc(p_state, sizeof(payloadHeader) + sizeof(payloadPedalState_Basic)) == pedalState_read_st.payloadFooter_.checkSum)
@@ -5908,18 +6051,9 @@ namespace User.PluginSdkDemo
                                 {
 
                                     // write vJoy data
-                                    //Pedal_position_reading[pedalSelected] = pedalState_read_st.payloadPedalBasicState_.joystickOutput_u16;
-                                    //if (Plugin.Rudder_enable_flag == false)
-                                    //{
-                                   
-
-                                    //}
-                                    
-
-
-
+                                    Pedal_position_reading[pedalSelected] = pedalState_read_st.payloadPedalBasicState_.joystickOutput_u16;                                  
                                     // GUI update
-                                    /*
+                                    
                                     if ((pedalStateHasAlreadyBeenUpdated_b == false) && (indexOfSelectedPedal_u == pedalSelected))
                                     {
                                        
@@ -5962,7 +6096,7 @@ namespace User.PluginSdkDemo
                                         }
 
                                     }
-                                    */
+                                    
 
                                     continue;
                                 }
@@ -6076,8 +6210,8 @@ namespace User.PluginSdkDemo
 
 
                             // decode into config struct
-                            /*
-                            if ((waiting_for_pedal_config[pedalSelected]) && (destBuffLength == sizeof(DAP_config_st)))
+                            
+                            if ( destBuffLength == sizeof(DAP_config_st))
                             {
 
                                 // parse byte array as config struct
@@ -6100,23 +6234,27 @@ namespace User.PluginSdkDemo
                                 {
                                     check_crc_config_b = true;
                                 }
-
-                                if ((check_payload_config_b) && check_crc_config_b)
+                                UInt16 pedalSelected = pedalConfig_read_st.payloadHeader_.PedalTag;
+                                if (waiting_for_pedal_config[pedalSelected])
                                 {
-                                    waiting_for_pedal_config[pedalSelected] = false;
-                                    dap_config_st[pedalSelected] = pedalConfig_read_st;
-                                    updateTheGuiFromConfig();
+                                    if ((check_payload_config_b) && check_crc_config_b)
+                                    {
+                                        waiting_for_pedal_config[pedalSelected] = false;
+                                        dap_config_st[pedalSelected] = pedalConfig_read_st;
+                                        updateTheGuiFromConfig();
 
-                                    continue;
+                                        continue;
+                                    }
+                                    else
+                                    {
+                                        TextBox_debugOutput.Text = "Payload config test 1: " + check_payload_config_b;
+                                        TextBox_debugOutput.Text += "Payload config test 2: " + check_crc_config_b;
+                                    }
                                 }
-                                else
-                                {
-                                    TextBox_debugOutput.Text = "Payload config test 1: " + check_payload_config_b;
-                                    TextBox_debugOutput.Text += "Payload config test 2: " + check_crc_config_b;
-                                }
+
 
                             }
-                            */
+                            
 
 
                             // If non known array datatype was received, assume a text message was received and print it
@@ -6216,6 +6354,108 @@ namespace User.PluginSdkDemo
             }
         }
 
+        private void CheckBox_Pedal_ESPNow_autoconnect_Checked(object sender, RoutedEventArgs e)
+        {
+            if (Plugin != null)
+            { 
+                Plugin.Settings.Pedal_ESPNow_auto_connect_flag = true;
+            }
+        }
+
+        private void CheckBox_Pedal_ESPNow_autoconnect_Unchecked(object sender, RoutedEventArgs e)
+        {
+            if (Plugin != null)
+            {
+                Plugin.Settings.Pedal_ESPNow_auto_connect_flag = false;
+            }
+        }
+
+        private void Checkbox_auto_remove_serial_line_Checked(object sender, RoutedEventArgs e)
+        {
+            if (Plugin != null)
+            {
+                Plugin.Settings.Serial_auto_clean = true;
+            }
+        }
+
+        private void Checkbox_auto_remove_serial_line_Unchecked(object sender, RoutedEventArgs e)
+        {
+            if (Plugin != null)
+            {
+                Plugin.Settings.Serial_auto_clean = false;
+            }
+        }
+
+ unsafe private void btn_OTA_enable_Click(object sender, RoutedEventArgs e)
+        {
+            // compute checksum
+            DAP_action_st tmp;
+            tmp.payloadHeader_.version = (byte)Constants.pedalConfigPayload_version;
+            tmp.payloadHeader_.payloadType = (byte)Constants.pedalActionPayload_type;
+            tmp.payloadHeader_.PedalTag = (byte)indexOfSelectedPedal_u;
+            tmp.payloadPedalAction_.system_action_u8 = 3; //1=reset pedal position, 2 =restart esp, 3=enable wifi OTA
+
+            DAP_action_st* v = &tmp;
+            byte* p = (byte*)v;
+            tmp.payloadFooter_.checkSum = Plugin.checksumCalc(p, sizeof(payloadHeader) + sizeof(payloadPedalAction));
+            int length = sizeof(DAP_action_st);
+            byte[] newBuffer = new byte[length];
+            newBuffer = Plugin.getBytes_Action(tmp);
+            if (Plugin.Settings.Pedal_ESPNow_Sync_flag[indexOfSelectedPedal_u])
+            {
+                if (Plugin.ESPsync_serialPort.IsOpen)
+                {
+                    try
+                    {
+                        // clear inbuffer 
+                        Plugin.ESPsync_serialPort.DiscardInBuffer();
+
+                        // send query command
+                        Plugin.ESPsync_serialPort.Write(newBuffer, 0, newBuffer.Length);
+                    }
+                    catch (Exception caughtEx)
+                    {
+                        string errorMessage = caughtEx.Message;
+                        TextBox_debugOutput.Text = errorMessage;
+                    }
+                }
+            }
+            else
+            {
+                if (Plugin._serialPort[indexOfSelectedPedal_u].IsOpen)
+                {
+                    try
+                    {
+                        // clear inbuffer 
+                        Plugin._serialPort[indexOfSelectedPedal_u].DiscardInBuffer();
+
+                        // send query command
+                        Plugin._serialPort[indexOfSelectedPedal_u].Write(newBuffer, 0, newBuffer.Length);
+                    }
+                    catch (Exception caughtEx)
+                    {
+                        string errorMessage = caughtEx.Message;
+                        TextBox_debugOutput.Text = errorMessage;
+                    }
+                }
+            }
+            string MSG_tmp = "Connect to ";
+            if (indexOfSelectedPedal_u == 0)
+            {
+                MSG_tmp += "FFBPedalClutch";
+            }
+            if (indexOfSelectedPedal_u == 1)
+            {
+                MSG_tmp += "FFBPedalBrake";
+            }
+            if (indexOfSelectedPedal_u == 2)
+            {
+                MSG_tmp += "FFBPedalGas";
+            }
+            MSG_tmp += " wifi hotspot, then go to 192.168.2.1 to upload firmware.bin";
+
+            System.Windows.MessageBox.Show(MSG_tmp, "OTA warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
     }
     
 }

@@ -19,6 +19,11 @@ bool ESPNOW_status =false;
 bool ESPNow_initial_status=false;
 bool ESPNow_update= false;
 bool ESPNow_no_device=false;
+bool update_basic_state=false;
+uint16_t Joystick_value[]={0,0,0};
+bool ESPNow_request_config_b=false;
+bool ESPNow_error_b=false;
+
 //https://github.com/nickgammon/I2C_Anything/tree/master
 struct ESPNow_Send_Struct
 { 
@@ -105,24 +110,22 @@ bool sendMessageToMaster(int32_t controllerValue)
 }
 void onRecv(const uint8_t *mac_addr, const uint8_t *data, int data_len) 
 {
-  /*
-  if(ESPNOW_status)
+  if(data_len==sizeof(dap_state_basic_st))
   {
-    memcpy(&ESPNow_recieve, data, sizeof(ESPNow_recieve));
-    ESPNow_update=true;
-  }
-  */
- /*
-  if(ESPNOW_status)
-  {
-    if(data_len==sizeof(_ESPNow_Recv))
+    memcpy(&dap_state_basic_st, data, sizeof(dap_state_basic_st));
+    Joystick_value[dap_state_basic_st.payLoadHeader_.PedalTag]=dap_state_basic_st.payloadPedalState_Basic_.joystickOutput_u16;
+    update_basic_state=true;
+    if(dap_state_basic_st.payloadPedalState_Basic_.error_code_u8!=0)
     {
-      memcpy(&_ESPNow_Recv, data, sizeof(_ESPNow_Recv));
-      ESPNow_update=true;
+      ESPNow_error_b=true;
     }
-
   }
-  */
+
+  if(data_len==sizeof(dap_config_st))
+  {
+    memcpy(&dap_config_st, data, sizeof(dap_config_st));
+    ESPNow_request_config_b=true;
+  }
 
 }
 void OnSent(const uint8_t *mac_addr, esp_now_send_status_t status)

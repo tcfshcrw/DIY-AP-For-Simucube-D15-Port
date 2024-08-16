@@ -450,6 +450,7 @@ delay(5);
         {
           dap_action_update=true;
           // trigger return pedal position
+          /*
           if (dap_actions_st.payloadPedalAction_.returnPedalConfig_u8)
           {
             DAP_config_st * dap_config_st_local_ptr;
@@ -460,6 +461,7 @@ delay(5);
             Serial.write((char*)dap_config_st_local_ptr, sizeof(DAP_config_st));
             Serial.print("\r\n");
           }
+          */
           
                 
         }
@@ -469,19 +471,7 @@ delay(5);
               
         DAP_config_st * dap_config_st_local_ptr;
         dap_config_st_local_ptr = &dap_config_st;
-        Serial.readBytes((char*)dap_config_st_local_ptr, sizeof(DAP_config_st));
-        /*
-        Serial.print("Bridge Payload type expected: ");
-        Serial.print(DAP_PAYLOAD_TYPE_ACTION);
-        Serial.print(",Bridge Payload type received: ");
-        Serial.println(dap_config_st.payLoadHeader_.payloadType);
-        Serial.print("Bridge Config version expected: ");
-        Serial.print(DAP_VERSION_CONFIG);
-        Serial.print(",Bridge Config version received: ");
-        Serial.println(dap_config_st.payLoadHeader_.version);
-        Serial.print("Bridge Minimun position: ");
-        Serial.println(dap_config_st.payLoadPedalConfig_.pedalStartPosition);  
-        */                     
+        Serial.readBytes((char*)dap_config_st_local_ptr, sizeof(DAP_config_st));        
         // check if data is plausible          
         if ( dap_config_st.payLoadHeader_.payloadType != DAP_PAYLOAD_TYPE_CONFIG )
         { 
@@ -586,6 +576,40 @@ delay(5);
     //Serial.println("Broadcast sent");
     dap_action_update=false;
   }
+  if(update_basic_state)
+  {
+    update_basic_state=false;
+    Serial.write((char*)&dap_state_basic_st, sizeof(DAP_state_basic_st));
+    Serial.print("\r\n");
+  }
+  if(ESPNow_request_config_b)
+  {
+    DAP_config_st * dap_config_st_local_ptr;
+    dap_config_st_local_ptr = &dap_config_st;
+    //uint16_t crc = checksumCalculator((uint8_t*)(&(dap_config_st.payLoadHeader_)), sizeof(dap_config_st.payLoadHeader_) + sizeof(dap_config_st.payLoadPedalConfig_));
+    crc = checksumCalculator((uint8_t*)(&(dap_config_st.payLoadHeader_)), sizeof(dap_config_st.payLoadHeader_) + sizeof(dap_config_st.payLoadPedalConfig_));
+    dap_config_st_local_ptr->payloadFooter_.checkSum = crc;
+    dap_config_st_local_ptr->payLoadHeader_.PedalTag=dap_config_st_local_ptr->payLoadPedalConfig_.pedal_type;
+    Serial.write((char*)dap_config_st_local_ptr, sizeof(DAP_config_st));
+    Serial.print("\r\n");
+    ESPNow_request_config_b=false;
+    Serial.print("config returned");
+  }
+  if(ESPNow_error_b)
+  {
+    Serial.print("Pedal:");
+    Serial.print(dap_state_basic_st.payLoadHeader_.PedalTag);
+    Serial.print(" E:");
+    Serial.println(dap_state_basic_st.payloadPedalState_Basic_.error_code_u8);
+    ESPNow_error_b=false;
+    
+  }
+  // set joysitck value
+  #ifdef Using_analog_output
+    dacWrite(Analog_brk,(uint16_t)(Joystick_value[1]/JOYSTICK_RANGE*255));
+    dacWrite(Analog_gas,(uint16_t)(Joystick_value[2]/JOYSTICK_RANGE*255));
+  #endif
+
   /*
   if(loop_count>3000)
   {

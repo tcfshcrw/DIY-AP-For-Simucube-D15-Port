@@ -116,6 +116,7 @@ void isv57communication::sendTunedServoParameters() {
   {
     Serial.println("Servo registered in NVM have been updated! Please power cycle the servo and the ESP!");
     modbus.holdingRegisterWrite(slaveId, 0x019A, 0x5555); // store the settings to servos NVM
+    isv57_update_parameter_b=true;
     delay(2000);
   }
 
@@ -161,6 +162,11 @@ bool isv57communication::checkCommunication()
 void isv57communication::setZeroPos()
 {
   zeroPos = servo_pos_given_p;
+}
+
+void isv57communication::applyOfsetToZeroPos(int16_t givenPosOffset_i16)
+{
+  zeroPos += givenPosOffset_i16;
 }
 
 int16_t isv57communication::getZeroPos()
