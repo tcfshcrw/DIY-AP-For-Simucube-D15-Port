@@ -147,7 +147,7 @@ jobs:
         working-directory: ./ESP_bridge
         run: | 
           pio system info
-          pio run --environment esp32
+          pio run --environment esp32 
     # copy files to dir
       - name: Copy files to packing dir
         run: | 
