@@ -351,7 +351,7 @@ jobs:
        #     allowUpdates: true
        #     name: ${{ env.DATE }}
        #     tag: ${{ env.DATE }}
-      - name: Upload ESP release assets speedcrafter PCB V1p4
+      - name: Upload Simhub plugin
         id: upload-release-asset-simhub_plugin
         uses: actions/upload-release-asset@v1
         env:
