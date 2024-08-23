@@ -145,10 +145,14 @@
   #define SENSORLESS_HOMING true
   #define ISV57_TXPIN 27 //17
   #define ISV57_RXPIN 26 // 16
-
+  //pedal assignment
+  #define PEDAL_ASSIGNMENT
+  #define CFG1 15
+  #define CFG2 12
   #define Using_analog_output
   //#define Using_I2C_Sync
   #define ESPNOW_Enable
+  #define ESPNow_ESP32
   #define I2C_slave_address 0x15
   #define BLUETOOTH_GAMEPAD
   //#define USB_JOYSTICK
@@ -211,7 +215,7 @@
   #define SENSORLESS_HOMING true
   #define ISV57_TXPIN 26 //17
   #define ISV57_RXPIN 27 // 16
-
+  #define ESPNOW_Enable
   #define BLUETOOTH_GAMEPAD
   //#define USB_JOYSTICK
   #define SERIAL_COOMUNICATION_TASK_DELAY_IN_MS 3
@@ -256,14 +260,14 @@
 
   //#define BLUETOOTH_GAMEPAD
   #define USB_JOYSTICK
-
+  #define ESPNOW_Enable
+  #define ESPNow_S3
   #define SERIAL_COOMUNICATION_TASK_DELAY_IN_MS 5
 #endif
 
-// V3 version of dev PCB for ESP32 S3
+// For Gilphilbert PCBA design
 // flash instructions, see https://hutscape.com/tutorials/hello-arduino-esp32s3
-// 1. ESP32S3 Dev Module
-// 2. USB CDC On Boot Enabled
+// 1. USB CDC On Boot Enabled
 #if PCB_VERSION == 7
   // ADC defines
   #define PIN_DRDY 15//19// 19 --> DRDY
@@ -286,14 +290,21 @@
   // endstop pins
   #define minPin 12
   #define maxPin 13
+  // Pedal assignment pin
+  #define PEDAL_ASSIGNMENT
+  #define CFG1 1
+  #define CFG2 2
 
+  #define EMERGENCY_BUTTON
+  #define ShutdownPin 6
   // level shifter is present on this PCB design
   #define SENSORLESS_HOMING true
   #define ISV57_TXPIN 10//27 //17
   #define ISV57_RXPIN 9//26 // 16
 
-  #define Using_analog_output_ESP32_S3
-
+  //#define Using_analog_output_ESP32_S3
+  #define ESPNOW_Enable
+  #define ESPNow_S3
   //#define BLUETOOTH_GAMEPAD
   #define USB_JOYSTICK
 
