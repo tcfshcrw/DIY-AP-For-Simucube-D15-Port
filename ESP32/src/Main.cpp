@@ -603,51 +603,7 @@ void setup()
       //MCP.begin();
     }
   #endif
-  #ifdef PEDAL_ASSIGNMENT
-    pinMode(CFG1, INPUT_PULLUP);
-    pinMode(CFG2, INPUT_PULLUP);
-    if(dap_config_st.payLoadPedalConfig_.pedal_type==4)
-    {
-      Serial.println("Pedal type:4, Pedal not assignment, reading from CFG pins....");
-      uint8_t CFG1_reading;
-      uint8_t CFG2_reading;
-      uint8_t Pedal_assignment;//00=clutch 01=brk  02=gas
-      
-      CFG1_reading=digitalRead(CFG1);
-      CFG2_reading=digitalRead(CFG2);
-      Pedal_assignment=CFG1_reading*2+CFG2_reading*1;
-      if(Pedal_assignment==3)
-      {
-        Serial.println("Pedal Type:3, assignment error, please adjust dip switch on control board or connect USB and send a config to finish assignment.");
-      }
-      else
-      {
-        if(Pedal_assignment!=4)
-        {
-          //Serial.print("Pedal Type");
-          //Serial.println(Pedal_assignment);
-          if(Pedal_assignment==0)
-          {
-            Serial.println("Pedal is assigned as Clutch, please also send the config in.");
-          }
-          if(Pedal_assignment==1)
-          {
-            Serial.println("Pedal is assigned as Brake, please also send the config in.");
-          }
-          if(Pedal_assignment==2)
-          {
-            Serial.println("Pedal is assigned as Throttle, please also send the config in.");
-          }
-          dap_config_st.payLoadPedalConfig_.pedal_type=Pedal_assignment;
-        }
-        else
-        {
-          Serial.println("Asssignment error, defective pin connection, pelase connect USB and send a config to finish assignment");
-        }
-      }
 
-    }
-  #endif
 
   //enable ESP-NOW
   #ifdef ESPNOW_Enable
@@ -1630,7 +1586,7 @@ void ESPNOW_SyncTask( void * pvParameters )
       ESP.restart();
     }
 
-    if(ESPNOW_count>8)
+    if(ESPNOW_count>4)
     {
       basic_state_send_b=true;
       ESPNOW_count=0;
@@ -1654,12 +1610,8 @@ void ESPNOW_SyncTask( void * pvParameters )
 
       if(basic_state_send_b)
       {
-        esp_err_t result = ESPNow.send_message(broadcast_mac,(uint8_t *) & dap_state_basic_st,sizeof(dap_state_basic_st));
+        ESPNow.send_message(broadcast_mac,(uint8_t *) & dap_state_basic_st,sizeof(dap_state_basic_st));
         basic_state_send_b=false;
-        if (result != ESP_OK) 
-        {
-          Serial.println("Error sending the data");
-        }   
       }
       if(ESPNow_config_request)
       {
