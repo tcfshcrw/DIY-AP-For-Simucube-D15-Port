@@ -155,9 +155,9 @@ jobs:
     # copy files to dir
       - name: Copy files to packing dir
         run: | 
-          copy ${{ github.workspace }}/ESP_bridge/.pio/build/ESP_bridge/firmware.bin  ${{ github.workspace }}/Helper/bins/esp32_bridge
-          copy ${{ github.workspace }}/ESP_bridge/.pio/build/ESP_bridge/bootloader.bin  ${{ github.workspace }}/Helper/bins/esp32_bridge
-          copy ${{ github.workspace }}/ESP_bridge/.pio/build/ESP_bridge/partitions.bin  ${{ github.workspace }}/Helper/bins/esp32_bridge
+          copy ${{ github.workspace }}/ESP_bridge/.pio/build/esp32/firmware.bin  ${{ github.workspace }}/Helper/bins/esp32_bridge
+          copy ${{ github.workspace }}/ESP_bridge/.pio/build/esp32/bootloader.bin  ${{ github.workspace }}/Helper/bins/esp32_bridge
+          copy ${{ github.workspace }}/ESP_bridge/.pio/build/esp32/partitions.bin  ${{ github.workspace }}/Helper/bins/esp32_bridge
     # zip plugin binaries
       - name: ZIP files
         run: | 
