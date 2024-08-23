@@ -80,12 +80,9 @@ DAP_actions_st dap_actions_st;
 #include "CycleTimer.h"
 
 
-
-
-
 #include "RTDebugOutput.h"
-
-
+#include "Wire.h"
+#include "SPI.h"
 /**********************************************************************************************/
 /*                                                                                            */
 /*                         iterpolation  definitions                                          */
@@ -173,14 +170,7 @@ static SemaphoreHandle_t semaphore_updatePedalStates=NULL;
 
 
 
-/**********************************************************************************************/
-/*                                                                                            */
-/*                         loadcell definitions                                               */
-/*                                                                                            */
-/**********************************************************************************************/
 
-#include "LoadCell.h"
-LoadCell_ADS1256* loadcell = NULL;
 
 
 
@@ -191,12 +181,12 @@ LoadCell_ADS1256* loadcell = NULL;
 /**********************************************************************************************/
 
 
-StepperWithLimits* stepper = NULL;
+//StepperWithLimits* stepper = NULL;
 //static const int32_t MIN_STEPS = 5;
 
 
 
-bool moveSlowlyToPosition_b = false;
+//bool moveSlowlyToPosition_b = false;
 /**********************************************************************************************/
 /*                                                                                            */
 /*                         OTA                                                                */
@@ -208,13 +198,13 @@ bool moveSlowlyToPosition_b = false;
 TaskHandle_t Task4;
 #endif
 
-
-//I2C sync
-#ifdef Using_I2C_Sync
-  
-  #include "I2CSync.h"
-  TaskHandle_t Task5;
+#ifdef Using_MCP4728
+  #include <Adafruit_MCP4728.h>
+  Adafruit_MCP4728 mcp;
+  TwoWire MCP4728_I2C= TwoWire(1);
+  bool MCP_status =false;
 #endif
+
 
 //ESPNOW
 #ifdef ESPNOW_Enable
@@ -239,6 +229,7 @@ void setup()
 
   #if PCB_VERSION == 6
     Serial.setTxTimeoutMs(0);
+    Serial.begin(921600);
   #else
     Serial.begin(921600);
     Serial.setTimeout(5);
@@ -260,7 +251,7 @@ void setup()
   dap_config_st.initialiseDefaults();
 
   // Load config from EEPROM, if valid, overwrite initial config
-  EEPROM.begin(2048);
+  //EEPROM.begin(2048);
   //dap_config_st.loadConfigFromEprom(dap_config_st_local);
 
 
@@ -326,20 +317,8 @@ void setup()
 
   disableCore0WDT();
 
-  //create a task that will be executed in the Task2code() function, with priority 1 and executed on core 1
 
-  /*
-  xTaskCreatePinnedToCore(
-                    serialCommunicationTask,   
-                    "serialCommunicationTask", 
-                    10000,  
-                    //STACK_SIZE_FOR_TASK_2,    
-                    NULL,      
-                    1,         
-                    &Task2,    
-                    0);     
-  delay(500);
-  */
+  
 
 
 
@@ -365,7 +344,45 @@ void setup()
                         0);     
       delay(500);
       */
+  #ifdef Using_MCP4728
+    MCP4728_I2C.begin(MCP_SDA,MCP_SCL,400000);
+    uint8_t i2c_address[8]={0x60,0x61,0x62,0x63,0x64,0x65,0x66,0x67};
+    int index_address=0;
+    int found_address=0;
+    int error;
+    for(index_address=0;index_address<8;index_address++)
+    {
+      MCP4728_I2C.beginTransmission(i2c_address[index_address]);
+      error = MCP4728_I2C.endTransmission();
+      if (error == 0)
+      {
+        Serial.print("I2C device found at address");
+        Serial.print(i2c_address[index_address]);
+        Serial.println("  !");
+        found_address=index_address;
+        break;
+        
+      }
+      else
+      {
+        Serial.print("try address");
+        Serial.println(i2c_address[index_address]);
+      }
+    }
     
+    if(mcp.begin(i2c_address[found_address], &MCP4728_I2C)==false)
+    {
+      Serial.println("Couldn't find MCP4728, will not have analog output");
+      MCP_status=false;
+    }
+    else
+    {
+      Serial.println("MCP4728 founded");
+      MCP_status=true;
+      //MCP.begin();
+    }
+    
+  #endif
     
       
     
@@ -606,8 +623,19 @@ delay(5);
   }
   // set joysitck value
   #ifdef Using_analog_output
-    dacWrite(Analog_brk,(uint16_t)(Joystick_value[1]/JOYSTICK_RANGE*255));
-    dacWrite(Analog_gas,(uint16_t)(Joystick_value[2]/JOYSTICK_RANGE*255));
+
+    dacWrite(Analog_brk,(uint16_t)((float)((Joystick_value[1])/(float)(JOYSTICK_RANGE))*255));
+    dacWrite(Analog_gas,(uint16_t)((float)((Joystick_value[2])/(float)(JOYSTICK_RANGE))*255));
+  #endif
+  //set MCP4728 analog value
+  #ifdef Using_MCP4728
+    if(MCP_status)
+    {
+      mcp.setChannelValue(MCP4728_CHANNEL_A, (uint16_t)((float)Joystick_value[0]/(float)JOYSTICK_RANGE*4096));
+      mcp.setChannelValue(MCP4728_CHANNEL_B, (uint16_t)((float)Joystick_value[1]/(float)JOYSTICK_RANGE*4096));
+      mcp.setChannelValue(MCP4728_CHANNEL_C, (uint16_t)((float)Joystick_value[2]/(float)JOYSTICK_RANGE*4096));
+    }
+
   #endif
 
   /*
@@ -888,6 +916,7 @@ void serialCommunicationTask( void * pvParameters )
     //Serial.print("Joy 1");
     delay( SERIAL_COOMUNICATION_TASK_DELAY_IN_MS );
           //Serial.print(" 2");
+    /*
     if(semaphore_updateJoystick!=NULL)
     {
       if(xSemaphoreTake(semaphore_updateJoystick, (TickType_t)1)==pdTRUE)
@@ -897,6 +926,8 @@ void serialCommunicationTask( void * pvParameters )
         xSemaphoreGive(semaphore_updateJoystick);
       }
     }
+    */
+    /*
     if (IsControllerReady()) 
     {
 
@@ -910,6 +941,7 @@ void serialCommunicationTask( void * pvParameters )
     
       
     }
+    */
 
   /*#ifdef SERIAL_TIMEOUT
     delay(10);
@@ -929,9 +961,8 @@ uint8_t error_out;
 void ESPNOW_SyncTask( void * pvParameters )
 {
   for(;;)
-  {
-      
-      delay(2);
+  {    
+      delay(1);
   }
 }
 #endif
