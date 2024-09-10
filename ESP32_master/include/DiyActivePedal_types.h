@@ -10,7 +10,7 @@
 #define DAP_PAYLOAD_TYPE_ACTION 110
 #define DAP_PAYLOAD_TYPE_STATE_BASIC 120
 #define DAP_PAYLOAD_TYPE_STATE_EXTENDED 130
-
+#define DAP_PAYLOAD_TYPE_BRIDGE_STATE 210
 struct payloadHeader {
   
   // structure identification via payload
@@ -29,8 +29,7 @@ struct payloadHeader {
 
 struct payloadPedalAction {
   uint8_t triggerAbs_u8;
-  //uint8_t resetPedalPos_u8; //1=reset position, 2=restart ESP
-  uint8_t system_action_u8; //1=reset position, 2=restart ESP
+  uint8_t system_action_u8;
   uint8_t startSystemIdentification_u8;
   uint8_t returnPedalConfig_u8;
   uint8_t RPM_u8;
@@ -48,7 +47,7 @@ struct payloadPedalState_Basic {
   uint16_t pedalPosition_u16;
   uint16_t pedalForce_u16;
   uint16_t joystickOutput_u16;
-  uint8_t erroe_code_u8;
+  uint8_t error_code_u8;
 };
 
 struct payloadPedalState_Extended {
@@ -63,6 +62,11 @@ struct payloadPedalState_Extended {
   int16_t servoPositionTarget_i16;
   int16_t servo_voltage_0p1V;
   int16_t servo_current_percent_i16;
+};
+struct payloadBridgeState {
+  uint8_t Pedal_RSSI;
+  uint8_t Pedal_availability[3];
+
 };
 
 struct payloadPedalConfig {
@@ -211,6 +215,11 @@ struct DAP_state_extended_st {
   payloadFooter payloadFooter_; 
 };
 
+struct DAP_bridge_state_st {
+  payloadHeader payLoadHeader_;
+  payloadBridgeState payloadBridgeState_;
+  payloadFooter payloadFooter_; 
+};
 
 struct DAP_config_st {
 

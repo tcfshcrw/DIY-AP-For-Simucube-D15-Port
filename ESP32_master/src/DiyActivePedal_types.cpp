@@ -2,7 +2,7 @@
 #include "Arduino.h"
 
 #include "PedalGeometry.h"
-#include "StepperWithLimits.h"
+//#include "StepperWithLimits.h"
 
 #include <EEPROM.h>
 
@@ -112,14 +112,6 @@ void DAP_config_st::storeConfigToEprom(DAP_config_st& config_st)
   EEPROM.put(EEPROM_OFFSET, config_st); 
   EEPROM.commit();
   Serial.println("Successfully stored config in EPROM");
-  
-  /*if (true == config_st.payLoadHeader_.storeToEeprom)
-  {
-    config_st.payLoadHeader_.storeToEeprom = false; // set to false, thus at restart existing EEPROM config isn't restored to EEPROM
-    EEPROM.put(0, config_st); 
-    EEPROM.commit();
-    Serial.println("Successfully stored config in EPROM");
-  }*/
 }
 
 void DAP_config_st::loadConfigFromEprom(DAP_config_st& config_st)
@@ -127,25 +119,9 @@ void DAP_config_st::loadConfigFromEprom(DAP_config_st& config_st)
   DAP_config_st local_config_st;
 
   EEPROM.get(EEPROM_OFFSET, local_config_st);
-  //EEPROM.commit();
 
   config_st = local_config_st;
 
-  // check if version matches revision, in case, update the default config
-  /*if (local_config_st.payLoadHeader_.version == DAP_VERSION_CONFIG)
-  {
-    config_st = local_config_st;
-    Serial.println("Successfully loaded config from EPROM");
-  }
-  else
-  { 
-    Serial.println("Couldn't load config from EPROM due to version mismatch");
-    Serial.print("Target version: ");
-    Serial.println(DAP_VERSION_CONFIG);
-    Serial.print("Source version: ");
-    Serial.println(local_config_st.payLoadHeader_.version);
-
-  }*/
 
 }
 
@@ -154,6 +130,7 @@ void DAP_config_st::loadConfigFromEprom(DAP_config_st& config_st)
 
 
 void DAP_calculationVariables_st::updateFromConfig(DAP_config_st& config_st) {
+  /*
   startPosRel = ((float)config_st.payLoadPedalConfig_.pedalStartPosition) / 100.0f;
   endPosRel = ((float)config_st.payLoadPedalConfig_.pedalEndPosition) / 100.0f;
 
@@ -166,7 +143,7 @@ void DAP_calculationVariables_st::updateFromConfig(DAP_config_st& config_st) {
   absFrequency = ((float)config_st.payLoadPedalConfig_.absFrequency);
   absAmplitude = ((float)config_st.payLoadPedalConfig_.absAmplitude) / 20.0f; // in kg or percent
 
-  dampingPress = ((float)config_st.payLoadPedalConfig_.dampingPress) * 0.00015f;
+  dampingPress = ((float)config_st.payLoadPedalConfig_.dampingPress) / 400.0f;
   RPM_max_freq = ((float)config_st.payLoadPedalConfig_.RPM_max_freq);
   RPM_min_freq = ((float)config_st.payLoadPedalConfig_.RPM_min_freq);
   RPM_AMP = ((float)config_st.payLoadPedalConfig_.RPM_AMP) / 100.0f;
@@ -183,6 +160,7 @@ void DAP_calculationVariables_st::updateFromConfig(DAP_config_st& config_st) {
   Force_Range = Force_Max - Force_Min;
   Force_Max_default=((float)config_st.payLoadPedalConfig_.maxForce); 
   pedal_type=config_st.payLoadPedalConfig_.pedal_type;
+  */
 }
 
 void DAP_calculationVariables_st::dynamic_update()

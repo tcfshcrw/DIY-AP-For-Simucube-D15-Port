@@ -61,8 +61,9 @@
 
 
 
-
-
+/********************************************************************/
+/*                      PIN defines                                 */
+/********************************************************************/
 
 // V3 version of dev PCB for regular ESP32
 #if PCB_VERSION == 3
@@ -78,7 +79,8 @@
   #define dirPinStepper    22
   #define stepPinStepper   23
   //analog output pin
-  #define D_O 25 
+  #define Analog_brk 25 
+  #define Analog_gas 26
   //I2Cpins
   #define I2C_SDA 32
   #define I2C_SCL 33
@@ -87,28 +89,19 @@
   #define minPin 12
   #define maxPin 13
 
-  // level shifter is present on this PCB design
-  #define SENSORLESS_HOMING true
-  #define ISV57_TXPIN 27 //17
-  #define ISV57_RXPIN 26 // 16
-
-//MCP4728 IIC
+  //I2C pins
   #define MCP_SDA 21
   #define MCP_SCL 22
 
   #define Using_analog_output
-  #define Using_ESP32
   //#define Using_I2C_Sync
   #define ESPNOW_Enable
-  #define I2C_slave_address 0x15
-  //#define BLUETOOTH_GAMEPAD
   #define Using_MCP4728
+  #define Using_Board_ESP32
+  //#define BLUETOOTH_GAMEPAD
   //#define USB_JOYSTICK
   #define SERIAL_COOMUNICATION_TASK_DELAY_IN_MS 1
 #endif
-
-
-
 
 
 
@@ -134,8 +127,8 @@
   //analog output pin
   //#define D_O 25   
   //MCP4725 SDA SCL
-  #define MCP_SDA 48
-  #define MCP_SCL 47
+  #define MCP_SDA 4
+  #define MCP_SCL 5
   
   // endstop pins
   #define minPin 12
@@ -145,12 +138,14 @@
   #define SENSORLESS_HOMING true
   #define ISV57_TXPIN 10//27 //17
   #define ISV57_RXPIN 9//26 // 16
+  #define ESPNOW_Enable
+  #define Using_Board_ESP32S3
+  //#define Using_MCP4728
+  //#define Using_analog_output_ESP32_S3
 
-  #define Using_analog_output_ESP32_S3
-  #define Using_ESP32S3
   //#define BLUETOOTH_GAMEPAD
   #define USB_JOYSTICK
-  #define ACTIVATE_JOYSTICK_OUTPUT
+  #define LED_ENABLE
   #define SERIAL_COOMUNICATION_TASK_DELAY_IN_MS 5
 #endif
 

@@ -331,8 +331,9 @@ void ESPNow_initialize()
     Serial.println("wait  for ESPNOW initialized");
     delay(3000);
     #ifdef ESPNow_S3
-      //esp_wifi_config_espnow_rate(WIFI_IF_STA, WIFI_PHY_RATE_11M_L);
-      esp_wifi_config_espnow_rate(WIFI_IF_STA, WIFI_PHY_RATE_54M);
+      //esp_wifi_config_espnow_rate(WIFI_IF_STA, 	WIFI_PHY_RATE_54M);
+      esp_wifi_config_espnow_rate(WIFI_IF_STA, WIFI_PHY_RATE_11M_L);
+      esp_wifi_set_max_tx_power(WIFI_POWER_8_5dBm);
     #endif
     #ifdef ESPNow_ESP32
       esp_wifi_config_espnow_rate(WIFI_IF_STA, WIFI_PHY_RATE_MCS0_LGI);
@@ -341,23 +342,30 @@ void ESPNow_initialize()
     
     if(dap_config_st.payLoadPedalConfig_.pedal_type==1)
     {
-      Recv_mac=Gas_mac;      
+      Recv_mac=Gas_mac;
+      ESPNow.add_peer(Recv_mac);    
     }
 
     if(dap_config_st.payLoadPedalConfig_.pedal_type==2)
     {
       Recv_mac=Brk_mac;
+      ESPNow.add_peer(Recv_mac);
     }
-    if(ESPNow.add_peer(Recv_mac)== ESP_OK)
+    /*
+    if(dap_config_st.payLoadPedalConfig_.pedal_type==2||dap_config_st.payLoadPedalConfig_.pedal_type==1)
     {
-      ESPNOW_status=true;
-      Serial.println("Sucess to add peer");
-    }
-    else
-    {
-      ESPNOW_status=false;
-      Serial.println("Fail to add peer");
-    }
+      if(ESPNow.add_peer(Recv_mac)== ESP_OK)
+      {
+        ESPNOW_status=true;
+        Serial.println("Sucess to add peer");
+      }
+      else
+      {
+        ESPNOW_status=false;
+        Serial.println("Fail to add peer");
+      }
+    }*/
+
     
     if(ESPNow.add_peer(esp_master)== ESP_OK)
     {

@@ -653,7 +653,7 @@ void setup()
   #ifdef ESPNOW_Enable
   dap_calculationVariables_st.rudder_brake_status=false;
   
-  if(dap_config_st.payLoadPedalConfig_.pedal_type==1||dap_config_st.payLoadPedalConfig_.pedal_type==2||dap_config_st.payLoadPedalConfig_.pedal_type==3)
+  if(dap_config_st.payLoadPedalConfig_.pedal_type==0||dap_config_st.payLoadPedalConfig_.pedal_type==1||dap_config_st.payLoadPedalConfig_.pedal_type==2)
   {
     ESPNow_initialize();
     xTaskCreatePinnedToCore(
@@ -709,6 +709,7 @@ void updatePedalCalcParameters()
 /*                         Main function                                                      */
 /*                                                                                            */
 /**********************************************************************************************/
+unsigned long joystick_state_last_update=millis();
 void loop() {
   taskYIELD();
   /*
@@ -1184,6 +1185,7 @@ void pedalUpdateTask( void * pvParameters )
         }
 
         dap_state_extended_st.payloadPedalState_Extended_.servoPositionTarget_i16 = stepper->getCurrentPositionFromMin();
+        dap_state_extended_st.payLoadHeader_.PedalTag=dap_config_st.payLoadPedalConfig_.pedal_type;
         dap_state_extended_st.payLoadHeader_.payloadType = DAP_PAYLOAD_TYPE_STATE_EXTENDED;
         dap_state_extended_st.payLoadHeader_.version = DAP_VERSION_CONFIG;
         dap_state_extended_st.payloadFooter_.checkSum = checksumCalculator((uint8_t*)(&(dap_state_extended_st.payLoadHeader_)), sizeof(dap_state_extended_st.payLoadHeader_) + sizeof(dap_state_extended_st.payloadPedalState_Extended_));
@@ -1607,6 +1609,7 @@ int error_count=0;
 int print_count=0;
 int ESPNow_no_device_count=0;
 bool basic_state_send_b=false;
+bool extend_state_send_b=false;
 uint8_t error_out;
 
 int64_t timeNow_espNowTask_l = 0;
@@ -1622,23 +1625,33 @@ void ESPNOW_SyncTask( void * pvParameters )
     timeNow_espNowTask_l = millis();
     int64_t timeDiff_espNowTask_l = ( timePrevious_espNowTask_l + REPETITION_INTERVAL_ESPNOW_TASK) - timeNow_espNowTask_l;
     uint32_t targetWaitTime_u32 = constrain(timeDiff_espNowTask_l, 0, REPETITION_INTERVAL_ESPNOW_TASK);
-    delay(targetWaitTime_u32);
+    delay(targetWaitTime_u32); 
     timePrevious_espNowTask_l = millis();
     //restart from espnow
     if(ESPNow_restart)
     {
       ESP.restart();
     }
-
-    if(ESPNOW_count>8)
+    //basic state sendout interval
+    if(ESPNOW_count%9==0)
     {
       basic_state_send_b=true;
+      
+    }
+    //entend state send out interval
+    if(ESPNOW_count%13==0 && dap_config_st.payLoadPedalConfig_.debug_flags_0 == DEBUG_INFO_0_STATE_EXTENDED_INFO_STRUCT)
+    {
+      extend_state_send_b=true;
+      
+    }
+
+    
+    ESPNOW_count++;
+    if(ESPNOW_count>10000)
+    {
       ESPNOW_count=0;
     }
-    else
-    {
-      ESPNOW_count++;
-    }
+    
     if(ESPNow_initial_status==false  )
     {
       if(OTA_enable_b==false)
@@ -1654,12 +1667,13 @@ void ESPNOW_SyncTask( void * pvParameters )
 
       if(basic_state_send_b)
       {
-        esp_err_t result = ESPNow.send_message(broadcast_mac,(uint8_t *) & dap_state_basic_st,sizeof(dap_state_basic_st));
+        ESPNow.send_message(broadcast_mac,(uint8_t *) & dap_state_basic_st,sizeof(dap_state_basic_st));
         basic_state_send_b=false;
-        if (result != ESP_OK) 
-        {
-          Serial.println("Error sending the data");
-        }   
+      }
+      if(extend_state_send_b)
+      {
+        ESPNow.send_message(broadcast_mac,(uint8_t *) & dap_state_extended_st, sizeof(dap_state_extended_st));
+        extend_state_send_b=false;
       }
       if(ESPNow_config_request)
       {
@@ -1722,7 +1736,7 @@ void ESPNOW_SyncTask( void * pvParameters )
           
                
     #endif
-    //delay(2);
+    //delay(1);
   }
 }
 #endif
@@ -1746,7 +1760,7 @@ void servoCommunicationTask( void * pvParameters )
 {
   
   for(;;){
-
+    delay(1);
     if (dap_config_st.payLoadPedalConfig_.debug_flags_0 & DEBUG_INFO_0_CYCLE_TIMER) 
     {
       static CycleTimer timerServoCommunication("Servo Com. cycle time");
@@ -1859,7 +1873,7 @@ void servoCommunicationTask( void * pvParameters )
 
           // When the servo turned off during driving, the servo loses its zero position and the correction might not be valid anymore. If still applied, the servo will somehow srive against the block
           // resulting in excessive servo load --> current load. We'll detect whether min or max block was reached, depending on the position error sign
-          bool servoCurrentLow_b = abs(isv57.servo_current_percent) < 20;
+          bool servoCurrentLow_b = abs(isv57.servo_current_percent) < 200;
           if (!servoCurrentLow_b)
           {
 
