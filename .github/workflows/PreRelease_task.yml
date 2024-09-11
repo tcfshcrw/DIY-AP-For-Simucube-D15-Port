@@ -194,7 +194,7 @@ jobs:
           asset_name: esp32s3-gilphilbert.zip
           asset_content_type: application/zip
 
-      - name: Upload ESP release assets esp32s3 espmaster
+      - name: Upload ESP release assets esp32s3 bridge with joystick receiver
         id: upload-release-asset-ESP32S3-ESPmaster
         uses: actions/upload-release-asset@v1
         env:
