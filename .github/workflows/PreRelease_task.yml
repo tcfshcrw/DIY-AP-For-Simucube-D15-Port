@@ -413,18 +413,18 @@ jobs:
         ls "C:\MSFS\"
 
     - name: Restore Packages
-      run: nuget restore "C:\MSFS\SimhubFlightSimulatorPlugin\JZCoding.Simhub.FlightPlugin.sln"
+      run: nuget restore "C:\MSFS\SimhubFlightSimulatorPlugin-43edea08f36552fb0326b8147d682c4019df9ef8\JZCoding.Simhub.FlightPlugin.sln"
 
     - name: Build solution
-      run: msbuild "C:\MSFS\SimhubFlightSimulatorPlugin\JZCoding.Simhub.FlightPlugin.sln" -t:rebuild -property:Configuration=Release
+      run: msbuild "C:\MSFS\SimhubFlightSimulatorPlugin-43edea08f36552fb0326b8147d682c4019df9ef8\JZCoding.Simhub.FlightPlugin.sln" -t:rebuild -property:Configuration=Release
 
     
     - name: Copy files to packing dir
       run: | 
-        copy "C:\MSFS\SimhubFlightSimulatorPlugin\SimConnectServer\bin\x64\Release\SimConnectServer.exe"  ${{ github.workspace }}/Helper/bins/MSFS
-        copy "C:\MSFS\SimhubFlightSimulatorPlugin\SimConnectServer\bin\x64\Release\SimConnect.dll"  ${{ github.workspace }}/Helper/bins/MSFS
-        copy "C:\MSFS\SimhubFlightSimulatorPlugin\SimConnectServer\bin\x64\Release\Microsoft.FlightSimulator.SimConnect.dll"  ${{ github.workspace }}/Helper/bins/MSFS
-        copy "C:\MSFS\SimhubFlightSimulatorPlugin\Plugin\obj\Release\JZCoding.Simhub.FlightPlugin.dll"  ${{ github.workspace }}/Helper/bins/MSFS
+        copy "C:\MSFS\SimhubFlightSimulatorPlugin-43edea08f36552fb0326b8147d682c4019df9ef8\SimConnectServer\bin\x64\Release\SimConnectServer.exe"  ${{ github.workspace }}/Helper/bins/MSFS
+        copy "C:\MSFS\SimhubFlightSimulatorPlugin-43edea08f36552fb0326b8147d682c4019df9ef8\SimConnectServer\bin\x64\Release\SimConnect.dll"  ${{ github.workspace }}/Helper/bins/MSFS
+        copy "C:\MSFS\SimhubFlightSimulatorPlugin-43edea08f36552fb0326b8147d682c4019df9ef8\SimConnectServer\bin\x64\Release\Microsoft.FlightSimulator.SimConnect.dll"  ${{ github.workspace }}/Helper/bins/MSFS
+        copy "C:\MSFS\SimhubFlightSimulatorPlugin-43edea08f36552fb0326b8147d682c4019df9ef8\Plugin\obj\Release\JZCoding.Simhub.FlightPlugin.dll"  ${{ github.workspace }}/Helper/bins/MSFS
         
 
     # zip plugin binaries
