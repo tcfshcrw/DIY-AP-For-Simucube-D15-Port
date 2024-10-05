@@ -406,17 +406,17 @@ jobs:
       run: | 
         7z x MSFS_byasxasdfghjkl.zip
         dir
-        mkdir "C:\MSFS\"
+    #    mkdir "C:\MSFS\"
         
-    - name: List files in dir
-      run: |
-        ls "C:\MSFS\"
+    #- name: List files in dir
+    #  run: |
+    #    ls "C:\MSFS\"
 
-    - name: Restore Packages
-      run: nuget restore "SimhubFlightSimulatorPlugin-43edea08f36552fb0326b8147d682c4019df9ef8/JZCoding.Simhub.FlightPlugin.sln"
+    #- name: Restore Packages
+    #  run: nuget restore "SimhubFlightSimulatorPlugin-43edea08f36552fb0326b8147d682c4019df9ef8/JZCoding.Simhub.FlightPlugin.sln"
 
-    - name: Build solution
-      run: msbuild "SimhubFlightSimulatorPlugin-43edea08f36552fb0326b8147d682c4019df9ef8/JZCoding.Simhub.FlightPlugin.sln" -t:rebuild -property:Configuration=Release
+    #- name: Build solution
+    #  run: msbuild "SimhubFlightSimulatorPlugin-43edea08f36552fb0326b8147d682c4019df9ef8/JZCoding.Simhub.FlightPlugin.sln" -t:rebuild -property:Configuration=Release
 
     
     - name: Copy files to packing dir
